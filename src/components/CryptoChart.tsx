@@ -36,32 +36,32 @@ const generateDataForTimeRange = (timeRange: string, selectedCoin: { symbol: str
   switch(timeRange) {
     case '15m':
       dataPoints = 60;
-      volatility = 20;
+      volatility = 500;
       timeFormat = 'HH:mm';
       break;
     case '1H':
       dataPoints = 60;
-      volatility = 50;
+      volatility = 1000;
       timeFormat = 'HH:mm';
       break;
     case '4H':
       dataPoints = 48;
-      volatility = 100;
+      volatility = 2000;
       timeFormat = 'HH:mm';
       break;
     case '1D':
       dataPoints = 24;
-      volatility = 200;
+      volatility = 3000;
       timeFormat = 'HH:mm';
       break;
     case '1W':
       dataPoints = 7;
-      volatility = 400;
+      volatility = 5000;
       timeFormat = 'ddd';
       break;
     default:
       dataPoints = 60;
-      volatility = 20;
+      volatility = 500;
       timeFormat = 'HH:mm';
   }
 
@@ -70,10 +70,21 @@ const generateDataForTimeRange = (timeRange: string, selectedCoin: { symbol: str
 
   const data = [];
   let currentPrice = basePrice;
+  let previousPrice = currentPrice;
+
+  const trendBias = Math.random() > 0.5 ? 1 : -1;
 
   for (let i = 0; i < dataPoints; i++) {
-    const change = (Math.random() - 0.5) * volatility;
+    const trendComponent = trendBias * (Math.random() * volatility * 0.2);
+    const randomComponent = (Math.random() - 0.5) * volatility;
+    const largeMovement = Math.random() > 0.9 ? (Math.random() - 0.5) * volatility * 3 : 0;
+    
+    const change = trendComponent + randomComponent + largeMovement;
     currentPrice += change;
+    
+    if (currentPrice <= 0) {
+      currentPrice = basePrice * 0.1;
+    }
     
     const date = new Date(startDate);
     
@@ -146,11 +157,11 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     const isPositive = percentChange >= 0;
 
     return (
-      <div className="bg-[#1A1F2C] border border-[#2A2F3C] p-2 rounded-md shadow-lg">
+      <div className="bg-[#1A1F2C] border border-[#2A2F3C] p-3 rounded-md shadow-lg">
         <p className="text-[#8E9196] text-xs">{label}</p>
-        <p className="text-white font-medium">${currentPrice.toLocaleString()}</p>
+        <p className="text-white font-medium text-base">${currentPrice.toLocaleString()}</p>
         <p className={cn(
-          "text-xs font-medium",
+          "text-sm font-medium mt-1",
           isPositive ? "text-green-500" : "text-red-500"
         )}>
           {isPositive ? "+" : ""}{percentChange.toFixed(2)}%
