@@ -155,7 +155,16 @@ const forecastResiduals = (residuals: number[], horizon: number): number[] => {
 };
 
 // Apply confidence bands
-const applyConfidenceBands = (predictions: number[], historicalData: number[]): number[] => {
+const applyConfidenceBands = (
+  predictions: number[], 
+  historicalData: number[], 
+  marketSignals: {
+    sentiment?: number;
+    backtestReturns?: number;
+    rsi?: number;
+    macd?: { macdLine: number; signalLine: number; };
+  } = {}
+): number[] => {
   const n = historicalData.length;
   if (n < 2) return predictions;
   
@@ -168,19 +177,97 @@ const applyConfidenceBands = (predictions: number[], historicalData: number[]): 
   const variance = returns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / returns.length;
   const stdDev = Math.sqrt(variance);
   
-  const maxDailyChange = Math.max(stdDev * 3, 0.05);
+  // Adjust confidence bands based on market signals
+  let confidenceAdjustment = 1.0; // Default
+
+  // Adjust based on RSI (Overbought/Oversold)
+  if (marketSignals.rsi !== undefined) {
+    if (marketSignals.rsi > 70) {
+      confidenceAdjustment *= 1.2; // Higher volatility expected during overbought
+    } else if (marketSignals.rsi < 30) {
+      confidenceAdjustment *= 1.2; // Higher volatility expected during oversold
+    }
+  }
   
+  // Adjust based on MACD divergence
+  if (marketSignals.macd) {
+    const macdDivergence = Math.abs(marketSignals.macd.macdLine - marketSignals.macd.signalLine);
+    if (macdDivergence > 0.01) {
+      confidenceAdjustment *= 1 + (macdDivergence * 5); // Stronger divergence = higher volatility
+    }
+  }
+  
+  // Adjust based on sentiment (more extreme sentiment = wider bands)
+  if (marketSignals.sentiment !== undefined) {
+    const sentimentStrength = Math.abs(marketSignals.sentiment);
+    confidenceAdjustment *= 1 + (sentimentStrength * 0.5);
+  }
+  
+  // Adjust based on backtest returns
+  if (marketSignals.backtestReturns !== undefined) {
+    if (marketSignals.backtestReturns > 10) {
+      confidenceAdjustment *= 0.9; // Reduce volatility if strategy is working well
+    } else if (marketSignals.backtestReturns < 0) {
+      confidenceAdjustment *= 1.1; // Increase volatility if strategy is not working well
+    }
+  }
+  
+  const maxDailyChange = Math.max(stdDev * 3 * confidenceAdjustment, 0.05);
+  
+  // Apply trend bias based on indicators
+  let trendBias = 0;
+  
+  // RSI-based bias
+  if (marketSignals.rsi !== undefined) {
+    trendBias += (marketSignals.rsi - 50) / 100; // Range roughly -0.5 to +0.5
+  }
+  
+  // MACD-based bias
+  if (marketSignals.macd) {
+    const macdDiff = marketSignals.macd.macdLine - marketSignals.macd.signalLine;
+    trendBias += macdDiff * 10; // Scale to reasonable magnitude
+  }
+  
+  // Sentiment-based bias
+  if (marketSignals.sentiment !== undefined) {
+    trendBias += marketSignals.sentiment * 0.2; // Range roughly -0.2 to +0.2
+  }
+  
+  // Backtest-based bias
+  if (marketSignals.backtestReturns !== undefined) {
+    trendBias += marketSignals.backtestReturns / 100; // Scale to reasonable magnitude
+  }
+  
+  // Apply the biased confidence bands
   let currentPrice = historicalData[n - 1];
-  return predictions.map(targetPrice => {
-    const percentChange = (targetPrice / currentPrice) - 1;
+  return predictions.map((targetPrice, i) => {
+    const basePrediction = targetPrice;
+    
+    // Apply trend bias (increases effect over time)
+    const biasEffect = trendBias * (i + 1) * 0.005;
+    
+    const percentChange = ((basePrediction / currentPrice) - 1) + biasEffect;
     const cappedChange = Math.min(Math.max(percentChange, -maxDailyChange), maxDailyChange);
     const boundedPrice = currentPrice * (1 + cappedChange);
+    
     currentPrice = boundedPrice;
     return boundedPrice;
   });
 };
 
-export const calculatePrediction = (prices: number[], daysToPredict: number = 7): number[] => {
+interface PredictionInputs {
+  prices: number[];
+  sentiment?: number;
+  backtestReturns?: number;
+  rsi?: number;
+  macd?: { macdLine: number; signalLine: number; };
+}
+
+export const calculatePrediction = (
+  prices: number[], 
+  daysToPredict: number = 7,
+  additionalInputs: PredictionInputs = { prices }
+): number[] => {
   if (prices.length < 10) {
     return Array(daysToPredict).fill(prices[0] || 0);
   }
@@ -197,5 +284,10 @@ export const calculatePrediction = (prices: number[], daysToPredict: number = 7)
   const rawPredictions = Array(daysToPredict).fill(0)
     .map((_, i) => trendForecast[i] + seasonalForecast[i] + residualForecast[i]);
   
-  return applyConfidenceBands(rawPredictions, trainData);
+  return applyConfidenceBands(rawPredictions, trainData, {
+    sentiment: additionalInputs.sentiment,
+    backtestReturns: additionalInputs.backtestReturns,
+    rsi: additionalInputs.rsi,
+    macd: additionalInputs.macd
+  });
 };
