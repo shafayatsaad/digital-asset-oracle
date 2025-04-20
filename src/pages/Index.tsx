@@ -2,7 +2,7 @@
 import React from 'react';
 import CryptoChart from '@/components/CryptoChart';
 import { Card } from '@/components/ui/card';
-import { MonitorSmartphone } from 'lucide-react';
+import { MonitorSmartphone, BarChart, LineChart, TrendingUp, TrendingDown } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -40,14 +40,20 @@ const Index = () => {
           </Card>
           <Card className="bg-[#1A1F2C] border-none p-4">
             <div className="flex flex-col">
-              <span className="text-[#8E9196] text-sm">Machine Learning</span>
-              <span className="text-[#22c55e] text-xl font-medium">Advanced ML</span>
+              <span className="text-[#8E9196] text-sm">Advanced Features</span>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-[#22c55e]" />
+                <span className="text-[#22c55e] text-xl font-medium">Sentiment</span>
+              </div>
             </div>
           </Card>
           <Card className="bg-[#1A1F2C] border-none p-4">
             <div className="flex flex-col">
-              <span className="text-[#8E9196] text-sm">Correlation Analysis</span>
-              <span className="text-[#f43f5e] text-xl font-medium">Multi-Asset</span>
+              <span className="text-[#8E9196] text-sm">Backtesting</span>
+              <div className="flex items-center gap-2">
+                <LineChart className="h-5 w-5 text-[#f43f5e]" />
+                <span className="text-[#f43f5e] text-xl font-medium">Strategy</span>
+              </div>
             </div>
           </Card>
         </div>

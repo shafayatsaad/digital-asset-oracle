@@ -17,6 +17,8 @@ import {
 } from '@/utils/technical';
 import { calculatePrediction } from '@/utils/prediction/models';
 import { calculateCorrelation } from '@/utils/analysis/correlation';
+import { fetchMarketSentiment } from '@/utils/analysis/sentiment';
+import { runBacktest } from '@/utils/analysis/backtest';
 
 const allCoinsData: { [key: string]: any[] } = {};
 
@@ -48,6 +50,16 @@ const CryptoChart = () => {
     name: string;
     data: any[];
   }[]>([]);
+  const [sentimentData, setSentimentData] = useState<{
+    score: number;
+    source: string;
+    trend: 'positive' | 'negative' | 'neutral';
+  } | null>(null);
+  const [backtestResults, setBacktestResults] = useState<{
+    returns: number;
+    winRate: number;
+    maxDrawdown: number;
+  } | null>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,21 +75,37 @@ const CryptoChart = () => {
     const newMacdData = calculateMACD(prices);
     const newBollingerBands = calculateBollingerBands(prices);
     
+    // Add Bollinger Bands to chart data
+    const enhancedChartData = chartData.map((item, i) => ({
+      ...item,
+      upper: newBollingerBands.upper[i],
+      middle: newBollingerBands.middle[i],
+      lower: newBollingerBands.lower[i]
+    }));
+    
     const predictionPoints = 7;
     const lastThirtyPrices = prices.slice(-30);
     const newPredictionData = calculatePrediction(lastThirtyPrices, predictionPoints);
     
-    console.log("Prices:", prices.slice(-5));
-    console.log("Predictions:", newPredictionData);
+    // Fetch sentiment data
+    fetchMarketSentiment(selectedCoin.symbol).then(sentiment => {
+      setSentimentData(sentiment);
+    }).catch(err => {
+      console.error("Error fetching sentiment:", err);
+    });
     
-    setData(chartData);
+    // Run backtest for the current data
+    const newBacktestResults = runBacktest(prices);
+    setBacktestResults(newBacktestResults);
+    
+    setData(enhancedChartData);
     setRsiData(newRsiData);
     setMacdData(newMacdData);
     setBollingerBands(newBollingerBands);
     setPredictionData(newPredictionData);
     setTimeFormat(newTimeFormat);
     
-    allCoinsData[selectedCoin.symbol] = chartData;
+    allCoinsData[selectedCoin.symbol] = enhancedChartData;
     
     const updatedAllCoins = Object.keys(allCoinsData).map(symbol => ({
       symbol,
@@ -247,6 +275,14 @@ const CryptoChart = () => {
           bollingerBands={showBollingerBands ? bollingerBands : undefined}
           timeFormat={timeFormat}
         />
+        
+        {sentimentData && (
+          <SentimentCard sentiment={sentimentData} />
+        )}
+        
+        {backtestResults && (
+          <BacktestCard results={backtestResults} />
+        )}
       </div>
       
       <div className="lg:col-span-1 space-y-4">

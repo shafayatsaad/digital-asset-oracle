@@ -34,7 +34,7 @@ const CorrelationMatrix = ({ coins, className, visible = true }: CorrelationMatr
     // Extract price data for each coin
     const coinsWithPrices = coins.map(coin => ({
       symbol: coin.symbol,
-      prices: coin.data.map(point => point.price)
+      prices: coin.data.map(point => point.price).filter(p => p !== null && p !== undefined)
     }));
     
     // Calculate correlations between each pair
@@ -42,6 +42,9 @@ const CorrelationMatrix = ({ coins, className, visible = true }: CorrelationMatr
       for (let j = i + 1; j < coinsWithPrices.length; j++) {
         const coin1 = coinsWithPrices[i];
         const coin2 = coinsWithPrices[j];
+        
+        // Skip if we don't have enough price data
+        if (!coin1.prices.length || !coin2.prices.length) continue;
         
         // Calculate correlation over the last 30 points (or less if not available)
         const windowSize = Math.min(30, coin1.prices.length, coin2.prices.length);
@@ -87,7 +90,12 @@ const CorrelationMatrix = ({ coins, className, visible = true }: CorrelationMatr
   const correlationMatrix = generateCorrelationMatrix();
   
   if (correlationMatrix.length === 0) {
-    return null;
+    return (
+      <Card className={`bg-[#1A1F2C] border-none p-4 ${className}`}>
+        <h3 className="text-white text-sm font-medium mb-3">Correlation Analysis</h3>
+        <p className="text-[#8E9196] text-sm">Not enough data for correlation analysis</p>
+      </Card>
+    );
   }
   
   return (

@@ -103,36 +103,30 @@ const PriceChart = ({
           <>
             <Line
               type="monotone"
-              dataKey={(entry) => {
-                const index = data.findIndex(d => d.time === entry.time);
-                return index !== -1 ? bollingerBands.upper[index] : null;
-              }}
+              dataKey="upper"
               stroke="#f43f5e"
               strokeWidth={1}
               strokeDasharray="3 3"
               dot={false}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
-              dataKey={(entry) => {
-                const index = data.findIndex(d => d.time === entry.time);
-                return index !== -1 ? bollingerBands.middle[index] : null;
-              }}
+              dataKey="middle"
               stroke="#8E9196"
               strokeWidth={1}
               strokeDasharray="3 3"
               dot={false}
+              isAnimationActive={false}
             />
             <Line
               type="monotone"
-              dataKey={(entry) => {
-                const index = data.findIndex(d => d.time === entry.time);
-                return index !== -1 ? bollingerBands.lower[index] : null;
-              }}
+              dataKey="lower"
               stroke="#22c55e"
               strokeWidth={1}
               strokeDasharray="3 3"
               dot={false}
+              isAnimationActive={false}
             />
           </>
         )}
