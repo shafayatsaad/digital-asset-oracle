@@ -10,9 +10,21 @@ const timeRanges = [
   { value: '1W', label: '1W' },
 ];
 
-const TimeRangeSelector = () => {
+interface TimeRangeSelectorProps {
+  selectedRange: string;
+  onRangeChange: (range: string) => void;
+}
+
+const TimeRangeSelector = ({ selectedRange, onRangeChange }: TimeRangeSelectorProps) => {
   return (
-    <ToggleGroup type="single" defaultValue="15m" variant="outline">
+    <ToggleGroup 
+      type="single" 
+      value={selectedRange}
+      onValueChange={(value) => {
+        if (value) onRangeChange(value);
+      }}
+      variant="outline"
+    >
       {timeRanges.map((range) => (
         <ToggleGroupItem
           key={range.value}
