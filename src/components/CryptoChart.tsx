@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { 
@@ -15,9 +14,11 @@ import TimeRangeSelector from './TimeRangeSelector';
 import CoinSearch from './CoinSearch';
 import TechnicalIndicators from './TechnicalIndicators';
 import CorrelationMatrix from './CorrelationMatrix';
+import SettingsPanel from './SettingsPanel';
 import { cn } from '@/lib/utils';
 import { ZoomIn, ZoomOut, ChartBar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { 
   calculateRSI, 
   calculateMACD, 
@@ -163,11 +164,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const allCoinsData: { [key: string]: any[] } = {};
 
 const CryptoChart = () => {
+  const { toast } = useToast();
+  const [showBollingerBands, setShowBollingerBands] = useState(true);
+  const [showPredictions, setShowPredictions] = useState(false);
+  const [showCorrelation, setShowCorrelation] = useState(true);
   const [selectedRange, setSelectedRange] = useState('15m');
   const [selectedCoin, setSelectedCoin] = useState({ symbol: 'BTCUSDT', name: 'Bitcoin' });
   const [showIndicators, setShowIndicators] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [showPrediction, setShowPrediction] = useState(false);
   const [data, setData] = useState<any[]>([]);
   const [rsiData, setRsiData] = useState<number[]>([]);
   const [macdData, setMacdData] = useState<{
@@ -276,7 +280,7 @@ const CryptoChart = () => {
 
   // Add prediction data to chart
   const prepareChartData = () => {
-    if (!showPrediction || !predictionData.length) return data;
+    if (!showPredictions || !predictionData.length) return data;
     
     // Create extended data with predictions
     const result = [...data];
@@ -323,6 +327,30 @@ const CryptoChart = () => {
   const chartColor = coinData[selectedCoin.symbol as keyof typeof coinData]?.color || '#9b87f5';
   const currentPrice = coinData[selectedCoin.symbol as keyof typeof coinData]?.price || 0;
   const chartData = prepareChartData();
+
+  const handleBollingerBandsChange = (checked: boolean) => {
+    setShowBollingerBands(checked);
+    toast({
+      title: checked ? "Bollinger Bands Enabled" : "Bollinger Bands Disabled",
+      description: checked ? "Price volatility bands are now visible" : "Price volatility bands are now hidden"
+    });
+  };
+
+  const handlePredictionsChange = (checked: boolean) => {
+    setShowPredictions(checked);
+    toast({
+      title: checked ? "Price Predictions Enabled" : "Price Predictions Disabled",
+      description: checked ? "ML-based price predictions are now visible" : "ML-based price predictions are now hidden"
+    });
+  };
+
+  const handleCorrelationChange = (checked: boolean) => {
+    setShowCorrelation(checked);
+    toast({
+      title: checked ? "Correlation Analysis Enabled" : "Correlation Analysis Disabled",
+      description: checked ? "Multi-asset correlation matrix is now visible" : "Multi-asset correlation matrix is now hidden"
+    });
+  };
   
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -415,7 +443,7 @@ const CryptoChart = () => {
                 />
                 
                 {/* Bollinger Bands */}
-                {showIndicators && bollingerBands && (
+                {showIndicators && showBollingerBands && bollingerBands && (
                   <>
                     <Line
                       type="monotone"
@@ -464,7 +492,7 @@ const CryptoChart = () => {
                 />
                 
                 {/* Prediction line */}
-                {showPrediction && (
+                {showPredictions && (
                   <Line
                     type="monotone"
                     dataKey="predictedPrice"
@@ -482,7 +510,7 @@ const CryptoChart = () => {
           {/* Chart controls */}
           <div className="flex justify-between items-center mt-4">
             <div className="text-[#8E9196] text-xs">
-              {showPrediction ? 
+              {showPredictions ? 
                 "Showing price prediction (dashed line)" : 
                 "Click to show price prediction"
               }
@@ -492,11 +520,11 @@ const CryptoChart = () => {
               size="sm"
               className={cn(
                 "bg-transparent border-[#2A2F3C] text-[#8E9196] hover:text-white hover:bg-[#2A2F3C]",
-                showPrediction && "text-white bg-[#2A2F3C]"
+                showPredictions && "text-white bg-[#2A2F3C]"
               )}
-              onClick={() => setShowPrediction(prev => !prev)}
+              onClick={() => handlePredictionsChange(prev => !prev)}
             >
-              {showPrediction ? "Hide Prediction" : "Show Prediction"}
+              {showPredictions ? "Hide Prediction" : "Show Prediction"}
             </Button>
           </div>
         </Card>
@@ -507,15 +535,26 @@ const CryptoChart = () => {
             data={data} 
             rsiData={rsiData}
             macdData={macdData}
-            bollingerBands={bollingerBands}
+            bollingerBands={showBollingerBands ? bollingerBands : undefined}
             timeFormat={timeFormat}
           />
         )}
       </div>
       
-      {/* Right Column: Correlation Matrix */}
-      <div className="lg:col-span-1">
-        <CorrelationMatrix coins={allCoins} />
+      <div className="lg:col-span-1 space-y-4">
+        <SettingsPanel 
+          showBollingerBands={showBollingerBands}
+          onBollingerBandsChange={handleBollingerBandsChange}
+          showPredictions={showPredictions}
+          onPredictionsChange={handlePredictionsChange}
+          showCorrelation={showCorrelation}
+          onCorrelationChange={handleCorrelationChange}
+        />
+        
+        {/* Correlation Matrix */}
+        {showCorrelation && (
+          <CorrelationMatrix coins={allCoins} />
+        )}
       </div>
     </div>
   );
