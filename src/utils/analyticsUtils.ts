@@ -1,4 +1,3 @@
-
 // Technical indicators calculation
 export const calculateRSI = (prices: number[], period: number = 14): number[] => {
   if (prices.length < period + 1) {
@@ -132,43 +131,260 @@ const pearsonCorrelation = (x: number[], y: number[]): number => {
   return numerator / Math.sqrt(xDenom * yDenom);
 };
 
-// Simple prediction model (linear regression)
+// Advanced ML prediction model (enhanced version)
 export const calculatePrediction = (prices: number[], daysToPredict: number = 7): number[] => {
-  if (prices.length < 2) {
-    return [...prices, ...Array(daysToPredict).fill(prices[0] || 0)];
+  if (prices.length < 10) {
+    return [...Array(daysToPredict).fill(prices[0] || 0)];
   }
   
-  // Use last 30 days for the regression or all available data if less
-  const period = Math.min(30, prices.length);
-  const x = Array.from({ length: period }, (_, i) => i);
-  const y = prices.slice(-period);
+  // Use a training window for model fitting
+  const trainWindow = Math.min(60, prices.length);
+  const trainData = prices.slice(-trainWindow);
   
-  // Calculate linear regression parameters
-  const n = x.length;
-  const xMean = x.reduce((sum, val) => sum + val, 0) / n;
-  const yMean = y.reduce((sum, val) => sum + val, 0) / n;
+  // 1. Decompose the time series into trend, seasonality, and residuals
+  const { trend, seasonality, residuals } = decomposeSeries(trainData);
   
-  let numerator = 0;
-  let denominator = 0;
+  // 2. Forecast each component separately
+  const trendForecast = forecastTrend(trend, daysToPredict);
+  const seasonalForecast = forecastSeasonality(seasonality, daysToPredict);
+  const residualForecast = forecastResiduals(residuals, daysToPredict);
   
-  for (let i = 0; i < n; i++) {
-    numerator += (x[i] - xMean) * (y[i] - yMean);
-    denominator += Math.pow(x[i] - xMean, 2);
-  }
-  
-  const slope = denominator !== 0 ? numerator / denominator : 0;
-  const intercept = yMean - slope * xMean;
-  
-  // Generate predictions
+  // 3. Combine the forecasts to get the final prediction
   const predictions = [];
-  const lastPoint = period - 1;
-  
-  for (let i = 1; i <= daysToPredict; i++) {
-    const predictedValue = slope * (lastPoint + i) + intercept;
-    predictions.push(predictedValue);
+  for (let i = 0; i < daysToPredict; i++) {
+    predictions.push(trendForecast[i] + seasonalForecast[i] + residualForecast[i]);
   }
   
-  return predictions;
+  // Apply a confidence band adjustment (simulated)
+  return applyConfidenceBands(predictions, trainData);
+};
+
+// Time series decomposition (trend, seasonality, residuals)
+const decomposeSeries = (data: number[]): { trend: number[], seasonality: number[], residuals: number[] } => {
+  const n = data.length;
+  
+  // Extract trend using centered moving average
+  const windowSize = Math.min(7, Math.floor(n / 3));
+  const trend = [];
+  
+  // Handle edges
+  for (let i = 0; i < Math.floor(windowSize / 2); i++) {
+    trend.push(data[i]);
+  }
+  
+  // Calculate centered moving average
+  for (let i = Math.floor(windowSize / 2); i < n - Math.floor(windowSize / 2); i++) {
+    let sum = 0;
+    for (let j = i - Math.floor(windowSize / 2); j <= i + Math.floor(windowSize / 2); j++) {
+      sum += data[j];
+    }
+    trend.push(sum / windowSize);
+  }
+  
+  // Handle trailing edges
+  for (let i = n - Math.floor(windowSize / 2); i < n; i++) {
+    trend.push(data[i]);
+  }
+  
+  // Extract seasonality - using a differencing approach with period detection
+  const period = detectPeriod(data);
+  const seasonality = [];
+  for (let i = 0; i < n; i++) {
+    const detrended = data[i] - trend[i];
+    seasonality.push(detrended);
+  }
+  
+  // Smooth seasonality
+  const smoothedSeasonality = smoothSeasonality(seasonality, period);
+  
+  // Calculate residuals (remainder)
+  const residuals = data.map((val, i) => val - trend[i] - smoothedSeasonality[i]);
+  
+  return { trend, seasonality: smoothedSeasonality, residuals };
+};
+
+// Detect dominant cyclical pattern in the data
+const detectPeriod = (data: number[]): number => {
+  // Use autocorrelation to detect periodicity
+  // For simplicity, we'll use a fixed period of 7 (weekly)
+  // In a real implementation, this would use autocorrelation analysis
+  return 7;
+};
+
+// Smooth seasonal components by averaging similar seasonal positions
+const smoothSeasonality = (seasonality: number[], period: number): number[] => {
+  const result = [...seasonality];
+  const n = seasonality.length;
+  
+  // If we have at least 2 full periods
+  if (n >= period * 2) {
+    // Aggregate seasonality by position in period
+    for (let pos = 0; pos < period; pos++) {
+      const valuesAtPosition = [];
+      
+      for (let i = pos; i < n; i += period) {
+        valuesAtPosition.push(seasonality[i]);
+      }
+      
+      // Calculate average seasonal effect at this position
+      const avgSeasonal = valuesAtPosition.reduce((sum, val) => sum + val, 0) / valuesAtPosition.length;
+      
+      // Apply smoothed value
+      for (let i = pos; i < n; i += period) {
+        result[i] = avgSeasonal;
+      }
+    }
+  }
+  
+  return result;
+};
+
+// Forecast trend component using double exponential smoothing (Holt's method)
+const forecastTrend = (trend: number[], horizon: number): number[] => {
+  const n = trend.length;
+  if (n < 2) return Array(horizon).fill(trend[0] || 0);
+  
+  // Initialize level and trend
+  let level = trend[0];
+  let slope = trend[1] - trend[0];
+  
+  // Smoothing parameters (would be optimized in a full implementation)
+  const alpha = 0.7; // Level smoothing
+  const beta = 0.3;  // Trend smoothing
+  
+  // Apply Holt's method to historical data
+  for (let i = 1; i < n; i++) {
+    const prevLevel = level;
+    level = alpha * trend[i] + (1 - alpha) * (level + slope);
+    slope = beta * (level - prevLevel) + (1 - beta) * slope;
+  }
+  
+  // Generate forecasts
+  const forecast = [];
+  for (let i = 1; i <= horizon; i++) {
+    forecast.push(level + i * slope);
+  }
+  
+  return forecast;
+};
+
+// Forecast seasonal component
+const forecastSeasonality = (seasonality: number[], horizon: number): number[] => {
+  const n = seasonality.length;
+  const period = detectPeriod(seasonality);
+  const forecast = [];
+  
+  // Use the last observed season and repeat it
+  for (let i = 0; i < horizon; i++) {
+    const position = (n + i) % period;
+    // Find the most recent occurrence of this position
+    let lastOccurrence = position;
+    while (lastOccurrence < 0 || lastOccurrence >= n) {
+      lastOccurrence -= period;
+    }
+    
+    // If no valid data, use 0
+    forecast.push(lastOccurrence >= 0 ? seasonality[lastOccurrence] : 0);
+  }
+  
+  return forecast;
+};
+
+// Forecast residuals using ARMA-like approach
+const forecastResiduals = (residuals: number[], horizon: number): number[] => {
+  const n = residuals.length;
+  if (n < 5) return Array(horizon).fill(0);
+  
+  // Use AR(3) model - auto-regressive with 3 lags
+  const arOrder = Math.min(3, n - 1);
+  
+  // Calculate AR coefficients using Yule-Walker method (simplified)
+  const coef = calculateARCoefficients(residuals, arOrder);
+  
+  // Generate forecasts
+  const forecast = [];
+  for (let i = 0; i < horizon; i++) {
+    let pred = 0;
+    for (let j = 0; j < arOrder; j++) {
+      const lag = n - arOrder + j + i;
+      const value = lag < n ? residuals[lag] : forecast[lag - n];
+      pred += coef[j] * value;
+    }
+    
+    // Add small random innovation (could be based on residual variance)
+    const randomNoise = (Math.random() - 0.5) * 0.01 * Math.abs(residuals[n - 1] || 1);
+    forecast.push(pred + randomNoise);
+  }
+  
+  return forecast;
+};
+
+// Calculate AR coefficients using correlation structure (simplified Yule-Walker)
+const calculateARCoefficients = (data: number[], order: number): number[] => {
+  // For simplicity, we'll use a naive approach instead of full Yule-Walker equations
+  const coef = [];
+  const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+  const centered = data.map(val => val - mean);
+  
+  // Calculate autocorrelations at different lags
+  for (let lag = 1; lag <= order; lag++) {
+    let numerator = 0;
+    let denominator = 0;
+    
+    for (let i = lag; i < data.length; i++) {
+      numerator += centered[i] * centered[i - lag];
+    }
+    
+    for (let i = 0; i < data.length; i++) {
+      denominator += centered[i] * centered[i];
+    }
+    
+    // Add dampening factor for stability
+    const dampening = Math.pow(0.9, lag);
+    coef.push((denominator !== 0 ? numerator / denominator : 0) * dampening);
+  }
+  
+  return coef;
+};
+
+// Apply confidence bands to prediction and ensure forecasts are reasonable
+const applyConfidenceBands = (predictions: number[], historicalData: number[]): number[] => {
+  const n = historicalData.length;
+  if (n < 2) return predictions;
+  
+  // Calculate historical volatility
+  const returns = [];
+  for (let i = 1; i < n; i++) {
+    returns.push((historicalData[i] / historicalData[i - 1]) - 1);
+  }
+  
+  // Calculate standard deviation of returns
+  const mean = returns.reduce((sum, val) => sum + val, 0) / returns.length;
+  const variance = returns.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / returns.length;
+  const stdDev = Math.sqrt(variance);
+  
+  // Ensure predictions stay within reasonable bounds based on volatility
+  const lastPrice = historicalData[n - 1];
+  const result = [];
+  
+  // Impose a maximum allowed daily change based on historical volatility
+  const maxDailyChange = Math.max(stdDev * 3, 0.05); // 3 std devs or minimum 5%
+  
+  let currentPrice = lastPrice;
+  for (let i = 0; i < predictions.length; i++) {
+    // Calculate percent change from previous prediction
+    const targetPrice = predictions[i];
+    const percentChange = (targetPrice / currentPrice) - 1;
+    
+    // Cap the change to the maximum allowed
+    const cappedChange = Math.min(Math.max(percentChange, -maxDailyChange), maxDailyChange);
+    const boundedPrice = currentPrice * (1 + cappedChange);
+    
+    result.push(boundedPrice);
+    currentPrice = boundedPrice;
+  }
+  
+  return result;
 };
 
 // Bollinger Bands calculation

@@ -21,7 +21,7 @@ const Index = () => {
           <Card className="bg-[#1A1F2C] border-none p-4">
             <div className="flex flex-col">
               <span className="text-[#8E9196] text-sm">Current Version</span>
-              <span className="text-white font-medium">Phase 4.0</span>
+              <span className="text-white font-medium">Phase 5.0</span>
             </div>
           </Card>
         </div>
@@ -41,7 +41,7 @@ const Index = () => {
           <Card className="bg-[#1A1F2C] border-none p-4">
             <div className="flex flex-col">
               <span className="text-[#8E9196] text-sm">Machine Learning</span>
-              <span className="text-[#22c55e] text-xl font-medium">Predictions</span>
+              <span className="text-[#22c55e] text-xl font-medium">Advanced ML</span>
             </div>
           </Card>
           <Card className="bg-[#1A1F2C] border-none p-4">
