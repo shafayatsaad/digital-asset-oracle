@@ -13,9 +13,14 @@ interface CorrelationMatrixProps {
     }>;
   }[];
   className?: string;
+  visible?: boolean;
 }
 
-const CorrelationMatrix = ({ coins, className }: CorrelationMatrixProps) => {
+const CorrelationMatrix = ({ coins, className, visible = true }: CorrelationMatrixProps) => {
+  if (!visible || !coins || coins.length < 2) {
+    return null;
+  }
+  
   // Generate correlation matrix data
   const generateCorrelationMatrix = () => {
     const matrix: Array<{
@@ -40,6 +45,9 @@ const CorrelationMatrix = ({ coins, className }: CorrelationMatrixProps) => {
         
         // Calculate correlation over the last 30 points (or less if not available)
         const windowSize = Math.min(30, coin1.prices.length, coin2.prices.length);
+        
+        if (windowSize < 2) continue;
+        
         const correlationSeries = calculateCorrelation(
           coin1.prices.slice(-windowSize), 
           coin2.prices.slice(-windowSize),
@@ -89,9 +97,9 @@ const CorrelationMatrix = ({ coins, className }: CorrelationMatrixProps) => {
         {correlationMatrix.map((item, index) => (
           <div key={index} className="flex items-center justify-between bg-[#131722] p-2 rounded-md">
             <div className="flex items-center space-x-2">
-              <span className="text-white text-sm">{item.coin1}</span>
+              <span className="text-white text-sm">{item.coin1.replace('USDT', '')}</span>
               <span className="text-[#8E9196]">⟷</span>
-              <span className="text-white text-sm">{item.coin2}</span>
+              <span className="text-white text-sm">{item.coin2.replace('USDT', '')}</span>
             </div>
             <div className="flex items-center space-x-3">
               <span className="text-[#8E9196] text-xs">{item.strength}</span>

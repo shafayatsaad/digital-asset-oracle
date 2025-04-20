@@ -19,21 +19,16 @@ export const calculateBollingerBands = (prices: number[], period: number = 20, s
   const upper: number[] = [];
   const lower: number[] = [];
   
-  // Fill initial values
-  for (let i = 0; i < period - 1; i++) {
-    middle.push(0);
-    upper.push(0);
-    lower.push(0);
-  }
-  
-  // Calculate Bollinger Bands for each point after the initial period
-  for (let i = period - 1; i < prices.length; i++) {
-    const window = prices.slice(i - period + 1, i + 1);
-    const sma = window.reduce((sum, price) => sum + price, 0) / period;
+  // Calculate Bollinger Bands for each point
+  for (let i = 0; i < prices.length; i++) {
+    // For the initial points before we have a full period, use as many points as available
+    const startIndex = Math.max(0, i - period + 1);
+    const window = prices.slice(startIndex, i + 1);
+    const sma = window.reduce((sum, price) => sum + price, 0) / window.length;
     
     // Calculate standard deviation
     const squaredDiffs = window.map(price => Math.pow(price - sma, 2));
-    const variance = squaredDiffs.reduce((sum, diff) => sum + diff, 0) / period;
+    const variance = squaredDiffs.reduce((sum, diff) => sum + diff, 0) / window.length;
     const standardDeviation = Math.sqrt(variance);
     
     middle.push(sma);

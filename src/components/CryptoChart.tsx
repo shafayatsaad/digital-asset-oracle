@@ -556,7 +556,7 @@ const CryptoChart = () => {
           onCorrelationChange={handleCorrelationChange}
         />
         
-        <CorrelationMatrix coins={allCoins} />
+        <CorrelationMatrix coins={allCoins} visible={showCorrelation} />
       </div>
     </div>
   );
