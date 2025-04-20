@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { 
@@ -16,9 +15,7 @@ import { cn } from '@/lib/utils';
 import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-// Generate more realistic sample data
 const generateDataForTimeRange = (timeRange: string) => {
-  // Base price around 84000 with some volatility
   let basePrice = 84000;
   let volatility = 0;
   let dataPoints = 0;
@@ -56,7 +53,6 @@ const generateDataForTimeRange = (timeRange: string) => {
       timeFormat = 'HH:mm';
   }
 
-  // Create an array of timestamps and prices
   const startDate = new Date();
   startDate.setMinutes(0, 0, 0);
 
@@ -64,11 +60,9 @@ const generateDataForTimeRange = (timeRange: string) => {
   let currentPrice = basePrice;
 
   for (let i = 0; i < dataPoints; i++) {
-    // Generate a random price movement
     const change = (Math.random() - 0.5) * volatility;
     currentPrice += change;
     
-    // Create a timestamp
     const date = new Date(startDate);
     
     if (timeRange === '15m') {
@@ -83,7 +77,6 @@ const generateDataForTimeRange = (timeRange: string) => {
       date.setDate(date.getDate() - (dataPoints - i - 1));
     }
 
-    // Format the time string based on the time range
     const timeStr = date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
       minute: '2-digit',
@@ -103,44 +96,78 @@ const generateDataForTimeRange = (timeRange: string) => {
 const coinData = {
   'BTCUSDT': {
     price: 84289.6,
-    color: '#F7931A' // Bitcoin orange
+    color: '#F7931A'
   },
   'ETHUSDT': {
     price: 3189.4,
-    color: '#627EEA' // Ethereum blue
+    color: '#627EEA'
   },
   'BNBUSDT': {
     price: 589.8,
-    color: '#F3BA2F' // Binance yellow
+    color: '#F3BA2F'
   },
   'ADAUSDT': {
     price: 0.45,
-    color: '#0033AD' // Cardano blue
+    color: '#0033AD'
   },
   'SOLUSDT': {
     price: 165.2,
-    color: '#14F195' // Solana green
+    color: '#14F195'
   },
   'XRPUSDT': {
     price: 0.591,
-    color: '#23292F' // XRP black
+    color: '#23292F'
   },
   'DOGEUSDT': {
     price: 0.123,
-    color: '#C2A633' // Dogecoin gold
+    color: '#C2A633'
   }
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const currentPrice = payload[0].value;
+    const dataPoints = payload[0].payload.dataPoints || [];
+    
+    const previousPrice = dataPoints.length > 1 ? dataPoints[0].price : currentPrice;
+    const percentChange = ((currentPrice - previousPrice) / previousPrice) * 100;
+    const isPositive = percentChange >= 0;
+
+    return (
+      <div className="bg-[#1A1F2C] border border-[#2A2F3C] p-2 rounded-md shadow-lg">
+        <p className="text-[#8E9196] text-xs">{label}</p>
+        <p className="text-white font-medium">${currentPrice.toLocaleString()}</p>
+        <p className={cn(
+          "text-xs font-medium",
+          isPositive ? "text-green-500" : "text-red-500"
+        )}>
+          {isPositive ? "+" : ""}{percentChange.toFixed(2)}%
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 const CryptoChart = () => {
   const [selectedRange, setSelectedRange] = useState('15m');
   const [selectedCoin, setSelectedCoin] = useState({ symbol: 'BTCUSDT', name: 'Bitcoin' });
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [data, setData] = useState(() => generateDataForTimeRange('15m'));
+  const [data, setData] = useState(() => {
+    const initialData = generateDataForTimeRange('15m');
+    return initialData.map((item, index, arr) => ({
+      ...item,
+      dataPoints: arr.slice(Math.max(0, index - 1), index + 1)
+    }));
+  });
   const chartContainerRef = useRef<HTMLDivElement>(null);
   
-  // Update data when range or coin changes
   React.useEffect(() => {
-    setData(generateDataForTimeRange(selectedRange));
+    const newData = generateDataForTimeRange(selectedRange);
+    setData(newData.map((item, index, arr) => ({
+      ...item,
+      dataPoints: arr.slice(Math.max(0, index - 1), index + 1)
+    })));
   }, [selectedRange, selectedCoin]);
   
   const handleRangeChange = (range: string) => {
@@ -151,7 +178,6 @@ const CryptoChart = () => {
     setSelectedCoin(coin);
   };
   
-  // Zoom in and out functions
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.25, 3));
   };
@@ -160,7 +186,6 @@ const CryptoChart = () => {
     setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
   };
 
-  // Handle mouse wheel zooming
   const handleWheel = useCallback((e: React.WheelEvent) => {
     if (e.deltaY < 0) {
       zoomIn();
@@ -170,7 +195,6 @@ const CryptoChart = () => {
     e.preventDefault();
   }, []);
   
-  // Calculate chart domain based on zoom level
   const calculateDomain = () => {
     if (!data.length) return ['auto', 'auto'];
     
@@ -178,7 +202,7 @@ const CryptoChart = () => {
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     const range = max - min;
-    const padding = range * 0.1; // Add 10% padding
+    const padding = range * 0.1;
     
     const zoomedRange = range / zoomLevel;
     const midPoint = (max + min) / 2;
@@ -252,14 +276,12 @@ const CryptoChart = () => {
               orientation="right"
             />
             <Tooltip 
-              contentStyle={{ 
-                backgroundColor: '#1A1F2C',
-                border: '1px solid #2A2F3C',
-                borderRadius: '4px'
+              content={<CustomTooltip />}
+              cursor={{
+                stroke: '#8E9196',
+                strokeWidth: 1,
+                strokeDasharray: '5 5'
               }}
-              labelStyle={{ color: '#8E9196' }}
-              itemStyle={{ color: chartColor }}
-              formatter={(value: any) => [`$${value.toLocaleString()}`, 'Price']}
             />
             <ReferenceLine
               y={currentPrice}
