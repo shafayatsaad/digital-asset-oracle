@@ -8,6 +8,8 @@ import CorrelationMatrix from './CorrelationMatrix';
 import SettingsPanel from './SettingsPanel';
 import ChartControls from './chart/ChartControls';
 import PriceChart from './chart/PriceChart';
+import SentimentCard from './SentimentCard';
+import BacktestCard from './BacktestCard';
 import { coinData } from '@/utils/chart/coinData';
 import { generateDataForTimeRange } from '@/utils/chart/generateData';
 import { 
