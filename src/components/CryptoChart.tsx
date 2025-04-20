@@ -216,7 +216,13 @@ const CryptoChart = () => {
     const newRsiData = calculateRSI(prices);
     const newMacdData = calculateMACD(prices);
     const newBollingerBands = calculateBollingerBands(prices);
-    const newPredictionData = calculatePrediction(prices, 5);
+    
+    const predictionPoints = 7;
+    const lastThirtyPrices = prices.slice(-30);
+    const newPredictionData = calculatePrediction(lastThirtyPrices, predictionPoints);
+    
+    console.log("Prices:", prices.slice(-5));
+    console.log("Predictions:", newPredictionData);
     
     setData(chartData);
     setRsiData(newRsiData);
@@ -265,15 +271,6 @@ const CryptoChart = () => {
     });
   };
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    if (e.deltaY < 0) {
-      zoomIn();
-    } else {
-      zoomOut();
-    }
-    e.preventDefault();
-  }, []);
-  
   const calculateDomain = () => {
     if (!data.length) return ['auto', 'auto'];
     
@@ -297,9 +294,15 @@ const CryptoChart = () => {
     
     const result = [...data];
     
-    const lastTime = data[data.length - 1].time;
+    const lastDataPoint = data[data.length - 1];
+    const lastTime = lastDataPoint.time;
+    const lastPrice = lastDataPoint.price;
+    
     const lastDate = new Date();
-    lastDate.setHours(parseInt(lastTime.split(':')[0]), parseInt(lastTime.split(':')[1]));
+    if (lastTime.includes(':')) {
+      const [hours, minutes] = lastTime.split(':').map(Number);
+      lastDate.setHours(hours, minutes);
+    }
     
     for (let i = 0; i < predictionData.length; i++) {
       const nextDate = new Date(lastDate);
@@ -326,7 +329,8 @@ const CryptoChart = () => {
         time: timeStr,
         price: null,
         predictedPrice: predictionData[i],
-        isPrediction: true
+        isPrediction: true,
+        dataPoints: [{ price: lastPrice }, { price: predictionData[i] }]
       });
     }
     
@@ -406,7 +410,6 @@ const CryptoChart = () => {
           <div 
             className="h-[400px] w-full" 
             ref={chartContainerRef}
-            onWheel={handleWheel}
           >
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -499,13 +502,13 @@ const CryptoChart = () => {
                 />
                 
                 {showPredictions && (
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="predictedPrice"
                     stroke="#9333ea"
                     strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={{ r: 4, fill: "#9333ea" }}
+                    fillOpacity={0.1}
+                    fill="url(#colorPrediction)"
                     activeDot={{ r: 6, fill: "#9333ea" }}
                   />
                 )}
@@ -516,7 +519,7 @@ const CryptoChart = () => {
           <div className="flex justify-between items-center mt-4">
             <div className="text-[#8E9196] text-xs">
               {showPredictions ? 
-                "Showing price prediction (dashed line)" : 
+                "Showing price prediction (purple line)" : 
                 "Click to show price prediction"
               }
             </div>
