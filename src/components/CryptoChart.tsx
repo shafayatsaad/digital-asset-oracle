@@ -239,10 +239,18 @@ const CryptoChart = () => {
   
   const zoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 0.25, 3));
+    toast({
+      title: "Zoom In",
+      description: "Chart view zoomed in"
+    });
   };
   
   const zoomOut = () => {
     setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
+    toast({
+      title: "Zoom Out",
+      description: "Chart view zoomed out"
+    });
   };
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
