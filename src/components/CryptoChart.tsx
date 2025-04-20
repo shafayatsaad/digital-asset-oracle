@@ -160,7 +160,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-// Collect all coin data to use for correlation analysis
 const allCoinsData: { [key: string]: any[] } = {};
 
 const CryptoChart = () => {
@@ -196,18 +195,16 @@ const CryptoChart = () => {
   useEffect(() => {
     const { data: newData, timeFormat: newTimeFormat } = generateDataForTimeRange(selectedRange, selectedCoin);
     
-    // Prepare data for chart
     const chartData = newData.map((item, index, arr) => ({
       ...item,
       dataPoints: arr.slice(Math.max(0, index - 1), index + 1)
     }));
     
-    // Calculate technical indicators
     const prices = chartData.map(item => item.price);
     const newRsiData = calculateRSI(prices);
     const newMacdData = calculateMACD(prices);
     const newBollingerBands = calculateBollingerBands(prices);
-    const newPredictionData = calculatePrediction(prices, 5); // Predict 5 periods ahead
+    const newPredictionData = calculatePrediction(prices, 5);
     
     setData(chartData);
     setRsiData(newRsiData);
@@ -216,10 +213,8 @@ const CryptoChart = () => {
     setPredictionData(newPredictionData);
     setTimeFormat(newTimeFormat);
     
-    // Store this coin's data for correlation analysis
     allCoinsData[selectedCoin.symbol] = chartData;
     
-    // Update all coins data for correlation matrix
     const updatedAllCoins = Object.keys(allCoinsData).map(symbol => {
       const coin = { 
         symbol, 
@@ -232,7 +227,6 @@ const CryptoChart = () => {
     });
     
     setAllCoins(updatedAllCoins);
-    
   }, [selectedRange, selectedCoin]);
   
   const handleRangeChange = (range: string) => {
@@ -278,23 +272,18 @@ const CryptoChart = () => {
     ];
   };
 
-  // Add prediction data to chart
   const prepareChartData = () => {
     if (!showPredictions || !predictionData.length) return data;
     
-    // Create extended data with predictions
     const result = [...data];
     
-    // Get the last real data point time
     const lastTime = data[data.length - 1].time;
     const lastDate = new Date();
     lastDate.setHours(parseInt(lastTime.split(':')[0]), parseInt(lastTime.split(':')[1]));
     
-    // Add prediction points
     for (let i = 0; i < predictionData.length; i++) {
       const nextDate = new Date(lastDate);
       
-      // Increment time based on the selected range
       if (selectedRange === '15m') {
         nextDate.setMinutes(nextDate.getMinutes() + (i + 1) * 15);
       } else if (selectedRange === '1H') {
@@ -315,7 +304,7 @@ const CryptoChart = () => {
       
       result.push({
         time: timeStr,
-        price: null, // No real price
+        price: null,
         predictedPrice: predictionData[i],
         isPrediction: true
       });
@@ -442,7 +431,6 @@ const CryptoChart = () => {
                   strokeDasharray="3 3"
                 />
                 
-                {/* Bollinger Bands */}
                 {showIndicators && showBollingerBands && bollingerBands && (
                   <>
                     <Line
@@ -481,7 +469,6 @@ const CryptoChart = () => {
                   </>
                 )}
                 
-                {/* Main price chart */}
                 <Area
                   type="monotone"
                   dataKey="price"
@@ -491,7 +478,6 @@ const CryptoChart = () => {
                   strokeWidth={2}
                 />
                 
-                {/* Prediction line */}
                 {showPredictions && (
                   <Line
                     type="monotone"
@@ -507,7 +493,6 @@ const CryptoChart = () => {
             </ResponsiveContainer>
           </div>
           
-          {/* Chart controls */}
           <div className="flex justify-between items-center mt-4">
             <div className="text-[#8E9196] text-xs">
               {showPredictions ? 
@@ -522,23 +507,20 @@ const CryptoChart = () => {
                 "bg-transparent border-[#2A2F3C] text-[#8E9196] hover:text-white hover:bg-[#2A2F3C]",
                 showPredictions && "text-white bg-[#2A2F3C]"
               )}
-              onClick={() => handlePredictionsChange(prev => !prev)}
+              onClick={() => setShowPredictions(!showPredictions)}
             >
               {showPredictions ? "Hide Prediction" : "Show Prediction"}
             </Button>
           </div>
         </Card>
       
-        {/* Technical Indicators */}
-        {showIndicators && (
-          <TechnicalIndicators 
-            data={data} 
-            rsiData={rsiData}
-            macdData={macdData}
-            bollingerBands={showBollingerBands ? bollingerBands : undefined}
-            timeFormat={timeFormat}
-          />
-        )}
+        <TechnicalIndicators 
+          data={data} 
+          rsiData={rsiData}
+          macdData={macdData}
+          bollingerBands={showBollingerBands ? bollingerBands : undefined}
+          timeFormat={timeFormat}
+        />
       </div>
       
       <div className="lg:col-span-1 space-y-4">
@@ -551,10 +533,7 @@ const CryptoChart = () => {
           onCorrelationChange={handleCorrelationChange}
         />
         
-        {/* Correlation Matrix */}
-        {showCorrelation && (
-          <CorrelationMatrix coins={allCoins} />
-        )}
+        <CorrelationMatrix coins={allCoins} />
       </div>
     </div>
   );
