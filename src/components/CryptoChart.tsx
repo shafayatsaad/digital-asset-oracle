@@ -22,9 +22,10 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   calculateRSI, 
   calculateMACD, 
-  calculateBollingerBands,
-  calculatePrediction
-} from '@/utils/analyticsUtils';
+  calculateBollingerBands 
+} from '@/utils/technical';
+import { calculatePrediction } from '@/utils/prediction/models';
+import { calculateCorrelation } from '@/utils/analysis/correlation';
 
 const generateDataForTimeRange = (timeRange: string, selectedCoin: { symbol: string; name: string }) => {
   let basePrice = coinData[selectedCoin.symbol as keyof typeof coinData]?.price || 84000;
