@@ -12,7 +12,8 @@ import {
   Line,
   BarChart,
   Bar,
-  ReferenceLine
+  ReferenceLine,
+  Cell
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -192,9 +193,17 @@ const TechnicalIndicators = ({
                 />
                 <Bar
                   dataKey="histogram"
-                  fill={(entry) => (entry.histogram >= 0 ? "#22c55e" : "#f43f5e")}
+                  fill="#22c55e" // Setting default fill color
                   barSize={3}
-                />
+                >
+                  {/* Use Cell components to set individual bar colors */}
+                  {combinedData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.histogram >= 0 ? "#22c55e" : "#f43f5e"} 
+                    />
+                  ))}
+                </Bar>
               </LineChart>
             </ResponsiveContainer>
           </div>
