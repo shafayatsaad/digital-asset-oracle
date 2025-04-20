@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { calculateCorrelation } from '@/utils/analyticsUtils';
+import { calculateCorrelation } from '@/utils/analysis/correlation';
 
 interface CorrelationMatrixProps {
   coins: {
