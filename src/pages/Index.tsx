@@ -1,12 +1,13 @@
-
 import React from 'react';
 import CryptoChart from '@/components/CryptoChart';
 import { Card } from '@/components/ui/card';
+import PostForm from '@/components/PostForm';
+import PostList from '@/components/PostList';
 import { MonitorSmartphone, BarChart, LineChart, TrendingUp, TrendingDown } from 'lucide-react';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-[#131722] p-4 overflow-hidden">
+    <div className="min-h-screen bg-[#131722] p-4 overflow-auto">
       <header className="max-w-[1400px] mx-auto mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -58,8 +59,10 @@ const Index = () => {
           </Card>
         </div>
       </header>
-      <div className="max-w-[1400px] mx-auto">
+      <div className="max-w-[1400px] mx-auto space-y-4">
         <CryptoChart />
+        <PostForm />
+        <PostList />
       </div>
     </div>
   );
