@@ -1,7 +1,17 @@
 
 import { coinData } from './coinData';
 
+// Add a cache to store generated data
+const dataCache: Record<string, any> = {};
+
 export const generateDataForTimeRange = (timeRange: string, selectedCoin: { symbol: string; name: string }) => {
+  const cacheKey = `${selectedCoin.symbol}-${timeRange}`;
+  
+  // Return cached data if available
+  if (dataCache[cacheKey]) {
+    return dataCache[cacheKey];
+  }
+  
   let basePrice = coinData[selectedCoin.symbol as keyof typeof coinData]?.price || 84000;
   let volatility = 0;
   let dataPoints = 0;
@@ -44,14 +54,19 @@ export const generateDataForTimeRange = (timeRange: string, selectedCoin: { symb
 
   const data = [];
   let currentPrice = basePrice;
-  let previousPrice = currentPrice;
+  
+  // Use a seed based on coin symbol and timeframe to get consistent random values
+  const seed = selectedCoin.symbol.charCodeAt(0) + timeRange.charCodeAt(0);
+  const pseudoRandom = (n: number) => {
+    return ((seed * 9301 + 49297) * n) % 233280 / 233280;
+  };
 
-  const trendBias = Math.random() > 0.5 ? 1 : -1;
+  const trendBias = pseudoRandom(1) > 0.5 ? 1 : -1;
 
   for (let i = 0; i < dataPoints; i++) {
-    const trendComponent = trendBias * (Math.random() * volatility * 0.2);
-    const randomComponent = (Math.random() - 0.5) * volatility;
-    const largeMovement = Math.random() > 0.9 ? (Math.random() - 0.5) * volatility * 3 : 0;
+    const trendComponent = trendBias * (pseudoRandom(i + 1) * volatility * 0.2);
+    const randomComponent = (pseudoRandom(i + 2) - 0.5) * volatility;
+    const largeMovement = pseudoRandom(i + 3) > 0.9 ? (pseudoRandom(i + 4) - 0.5) * volatility * 3 : 0;
     
     const change = trendComponent + randomComponent + largeMovement;
     currentPrice += change;
@@ -83,9 +98,14 @@ export const generateDataForTimeRange = (timeRange: string, selectedCoin: { symb
     data.push({
       time: timeStr,
       price: parseFloat(currentPrice.toFixed(1)),
-      volume: Math.floor(Math.random() * 100000)
+      volume: Math.floor(pseudoRandom(i + 5) * 100000)
     });
   }
 
-  return { data, timeFormat };
+  const result = { data, timeFormat };
+  
+  // Store in cache for future use
+  dataCache[cacheKey] = result;
+  
+  return result;
 };

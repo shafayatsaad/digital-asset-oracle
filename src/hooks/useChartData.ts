@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { coinData } from '@/utils/chart/coinData';
 import { generateDataForTimeRange } from '@/utils/chart/generateData';
@@ -49,9 +48,39 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     winRate: number;
     maxDrawdown: number;
   } | null>(null);
+  
+  // Add ref to store generated data to prevent unnecessary regeneration
+  const dataGeneratedRef = useRef<{
+    coin: string;
+    range: string;
+    data: any;
+  } | null>(null);
 
   useEffect(() => {
-    const { data: newData, timeFormat: newTimeFormat } = generateDataForTimeRange(selectedRange, selectedCoin);
+    // Only regenerate data when coin or range changes
+    const shouldRegenerateData = !dataGeneratedRef.current || 
+      dataGeneratedRef.current.coin !== selectedCoin.symbol || 
+      dataGeneratedRef.current.range !== selectedRange;
+    
+    let newData;
+    let newTimeFormat;
+    
+    if (shouldRegenerateData) {
+      const generatedData = generateDataForTimeRange(selectedRange, selectedCoin);
+      newData = generatedData.data;
+      newTimeFormat = generatedData.timeFormat;
+      
+      // Store generated data
+      dataGeneratedRef.current = {
+        coin: selectedCoin.symbol,
+        range: selectedRange,
+        data: generatedData
+      };
+    } else {
+      // Use cached data
+      newData = dataGeneratedRef.current.data.data;
+      newTimeFormat = dataGeneratedRef.current.data.timeFormat;
+    }
     
     const chartData = newData.map((item, index, arr) => ({
       ...item,
@@ -71,16 +100,18 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
       lower: newBollingerBands.lower[i]
     }));
     
-    // Fetch sentiment data
-    fetchMarketSentiment(selectedCoin.symbol).then(sentiment => {
-      setSentimentData(sentiment);
-    }).catch(err => {
-      console.error("Error fetching sentiment:", err);
-    });
-    
-    // Run backtest for the current data
-    const newBacktestResults = runBacktest(prices);
-    setBacktestResults(newBacktestResults);
+    // Only update sentiment data when coin or range changes
+    if (shouldRegenerateData) {
+      fetchMarketSentiment(selectedCoin.symbol).then(sentiment => {
+        setSentimentData(sentiment);
+      }).catch(err => {
+        console.error("Error fetching sentiment:", err);
+      });
+      
+      // Run backtest for the current data
+      const newBacktestResults = runBacktest(prices);
+      setBacktestResults(newBacktestResults);
+    }
     
     // Generate predictions using all available data points
     const predictionPoints = 7;
@@ -119,7 +150,7 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     }));
     
     setAllCoins(updatedAllCoins);
-  }, [selectedRange, selectedCoin, sentimentData, backtestResults]);
+  }, [selectedRange, selectedCoin]);  // Removed other dependencies to prevent rapid updates
   
   const handleRangeChange = (range: string) => {
     setSelectedRange(range);

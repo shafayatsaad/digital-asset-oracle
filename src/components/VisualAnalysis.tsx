@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { LineChart, BarChart2, TrendingUp, PieChart } from 'lucide-react';
 
@@ -27,48 +27,54 @@ const VisualAnalysis = ({
   className 
 }: VisualAnalysisProps) => {
   
-  // Calculate overall market score
-  const calculateScore = () => {
-    let score = 50; // Neutral starting point
+  // Use useMemo to prevent unnecessary recalculations
+  const { marketScore, signalStrength } = useMemo(() => {
+    // Calculate overall market score
+    const calculateScore = () => {
+      let score = 50; // Neutral starting point
+      
+      // Sentiment component (±15 points)
+      if (sentimentData) {
+        score += sentimentData.score * 15;
+      }
+      
+      // RSI component (±10 points)
+      if (rsiValue > 0) {
+        if (rsiValue > 70) score -= 8; // Overbought
+        else if (rsiValue < 30) score += 8; // Oversold
+        else score += ((rsiValue - 50) / 20) * 5; // Normal range adjustment
+      }
+      
+      // MACD component (±10 points)
+      const macdSignal = macdValue.macdLine - macdValue.signalLine;
+      score += macdSignal * 50; // Scale appropriately
+      
+      // Strategy backtest component (±15 points)
+      if (backtestResults) {
+        score += backtestResults.returns * 0.3;
+        score += (backtestResults.winRate - 50) * 0.1;
+      }
+      
+      // Clamp to 0-100 range
+      return Math.max(0, Math.min(100, score));
+    };
     
-    // Sentiment component (±15 points)
-    if (sentimentData) {
-      score += sentimentData.score * 15;
-    }
+    const score = calculateScore();
     
-    // RSI component (±10 points)
-    if (rsiValue > 0) {
-      if (rsiValue > 70) score -= 8; // Overbought
-      else if (rsiValue < 30) score += 8; // Oversold
-      else score += ((rsiValue - 50) / 20) * 5; // Normal range adjustment
-    }
+    // Determine signal strength
+    const getSignalStrength = (value: number) => {
+      if (value > 65) return { label: 'Strong Buy', color: 'bg-green-500' };
+      if (value > 55) return { label: 'Buy', color: 'bg-green-400' };
+      if (value > 45) return { label: 'Neutral', color: 'bg-yellow-400' };
+      if (value > 35) return { label: 'Sell', color: 'bg-red-400' };
+      return { label: 'Strong Sell', color: 'bg-red-500' };
+    };
     
-    // MACD component (±10 points)
-    const macdSignal = macdValue.macdLine - macdValue.signalLine;
-    score += macdSignal * 50; // Scale appropriately
-    
-    // Strategy backtest component (±15 points)
-    if (backtestResults) {
-      score += backtestResults.returns * 0.3;
-      score += (backtestResults.winRate - 50) * 0.1;
-    }
-    
-    // Clamp to 0-100 range
-    return Math.max(0, Math.min(100, score));
-  };
-  
-  const marketScore = calculateScore();
-  
-  // Determine signal strength
-  const getSignalStrength = () => {
-    if (marketScore > 65) return { label: 'Strong Buy', color: 'bg-green-500' };
-    if (marketScore > 55) return { label: 'Buy', color: 'bg-green-400' };
-    if (marketScore > 45) return { label: 'Neutral', color: 'bg-yellow-400' };
-    if (marketScore > 35) return { label: 'Sell', color: 'bg-red-400' };
-    return { label: 'Strong Sell', color: 'bg-red-500' };
-  };
-  
-  const signalStrength = getSignalStrength();
+    return {
+      marketScore: score,
+      signalStrength: getSignalStrength(score)
+    };
+  }, [sentimentData, rsiValue, macdValue, backtestResults]);
   
   return (
     <Card className={`bg-[#1A1F2C] border-none p-4 ${className}`}>
