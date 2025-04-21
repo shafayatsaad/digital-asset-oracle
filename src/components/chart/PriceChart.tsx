@@ -25,8 +25,8 @@ interface PriceChartProps {
     lower: number[];
   };
   showPredictions: boolean;
-  compareKeys?: string[];              // <-- Added for compare mode
-  colors?: string[];                   // <-- Added for compare mode
+  compareKeys?: string[];     // enable compareKeys as optional prop
+  colors?: string[];          // enable colors for comparison chart
 }
 
 const PriceChart = ({
@@ -181,6 +181,7 @@ const PriceChart = ({
               strokeWidth={2}
               fillOpacity={0.3}
               dot={false}
+              isAnimationActive={false}
             />
           ))
         ) : (
@@ -192,6 +193,7 @@ const PriceChart = ({
             fillOpacity={1}
             fill={`url(#colorPrice-${chartColor})`}
             strokeWidth={2}
+            isAnimationActive={false}
           />
         )}
         
@@ -204,6 +206,7 @@ const PriceChart = ({
             fillOpacity={0.1}
             fill="url(#colorPrediction)"
             activeDot={{ r: 6, fill: "#9333ea" }}
+            isAnimationActive={false}
           />
         )}
       </AreaChart>
@@ -212,4 +215,3 @@ const PriceChart = ({
 };
 
 export default PriceChart;
-
