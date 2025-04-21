@@ -15,16 +15,19 @@ import { CustomTooltip } from './CustomTooltip';
 interface PriceChartProps {
   data: any[];
   chartColor: string;
-  currentPrice: number;
+  currentPrice?: number;
   zoomLevel: number;
   showIndicators: boolean;
   showBollingerBands: boolean;
-  bollingerBands: {
+  bollingerBands?: {
     upper: number[];
     middle: number[];
     lower: number[];
   };
   showPredictions: boolean;
+  // Add the new properties for comparison mode
+  compareKeys?: string[];
+  colors?: string[];
 }
 
 const PriceChart = ({
@@ -35,11 +38,35 @@ const PriceChart = ({
   showIndicators,
   showBollingerBands,
   bollingerBands,
-  showPredictions
+  showPredictions,
+  compareKeys,
+  colors
 }: PriceChartProps) => {
   const calculateDomain = () => {
     if (!data.length) return ['auto', 'auto'];
     
+    // If we're in comparison mode (using compareKeys), we need different logic
+    if (compareKeys && compareKeys.length > 0) {
+      const allValues: number[] = [];
+      data.forEach(item => {
+        compareKeys.forEach(key => {
+          if (item[key] !== undefined && item[key] !== null) {
+            allValues.push(item[key]);
+          }
+        });
+      });
+      
+      if (allValues.length === 0) return ['auto', 'auto'];
+      
+      const min = Math.min(...allValues);
+      const max = Math.max(...allValues);
+      const range = max - min;
+      const padding = range * 0.1;
+      
+      return [min - padding, max + padding];
+    }
+    
+    // Original logic for single price chart
     const prices = data.map(item => item.price);
     const min = Math.min(...prices);
     const max = Math.max(...prices);
@@ -59,6 +86,7 @@ const PriceChart = ({
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data}>
         <defs>
+          {/* Original gradient for price */}
           <linearGradient id={`colorPrice-${chartColor}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor={chartColor} stopOpacity={0.3} />
             <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
@@ -67,6 +95,14 @@ const PriceChart = ({
             <stop offset="5%" stopColor="#9333ea" stopOpacity={0.3} />
             <stop offset="95%" stopColor="#9333ea" stopOpacity={0} />
           </linearGradient>
+          
+          {/* Add gradients for comparison keys */}
+          {compareKeys && colors && compareKeys.map((key, index) => (
+            <linearGradient key={key} id={`color-${key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={colors[index] || chartColor} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={colors[index] || chartColor} stopOpacity={0} />
+            </linearGradient>
+          ))}
         </defs>
         <XAxis 
           dataKey="time" 
@@ -93,11 +129,14 @@ const PriceChart = ({
             strokeDasharray: '5 5'
           }}
         />
-        <ReferenceLine
-          y={currentPrice}
-          stroke="#8E9196"
-          strokeDasharray="3 3"
-        />
+        
+        {currentPrice && (
+          <ReferenceLine
+            y={currentPrice}
+            stroke="#8E9196"
+            strokeDasharray="3 3"
+          />
+        )}
         
         {showIndicators && showBollingerBands && bollingerBands && (
           <>
@@ -131,14 +170,31 @@ const PriceChart = ({
           </>
         )}
         
-        <Area
-          type="monotone"
-          dataKey="price"
-          stroke={chartColor}
-          fillOpacity={1}
-          fill={`url(#colorPrice-${chartColor})`}
-          strokeWidth={2}
-        />
+        {/* Handle comparison mode */}
+        {compareKeys && colors ? (
+          compareKeys.map((key, index) => (
+            <Area
+              key={key}
+              type="monotone"
+              dataKey={key}
+              stroke={colors[index] || chartColor}
+              fill={`url(#color-${key})`}
+              strokeWidth={2}
+              fillOpacity={0.3}
+              dot={false}
+            />
+          ))
+        ) : (
+          // Original single chart mode
+          <Area
+            type="monotone"
+            dataKey="price"
+            stroke={chartColor}
+            fillOpacity={1}
+            fill={`url(#colorPrice-${chartColor})`}
+            strokeWidth={2}
+          />
+        )}
         
         {showPredictions && (
           <Area
