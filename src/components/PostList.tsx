@@ -12,7 +12,7 @@ const PostList = () => {
   const fetchPosts = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('crypto_posts' as any)
+      .from('crypto_posts' as unknown as string)
       .select('id, encrypted_title, encrypted_content, created_at')
       .order('created_at', { ascending: false });
 

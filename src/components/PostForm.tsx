@@ -36,14 +36,15 @@ const PostForm = () => {
       return;
     }
 
-    // Use a type assertion to bypass TypeScript's type checking
+    // Use type casting with unknown as an intermediate step
+    // This avoids direct assignment to 'never' type
     const { error } = await supabase
-      .from('crypto_posts' as any)
+      .from('crypto_posts' as unknown as string)
       .insert({
         user_id: userData.user.id,
         encrypted_title: encryptedTitle,
         encrypted_content: encryptedContent,
-      } as any);
+      } as unknown as Record<string, unknown>);
 
     if (error) {
       toast({
