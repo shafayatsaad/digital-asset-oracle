@@ -38,12 +38,13 @@ const PostForm = () => {
 
     // Use type assertion to tell TypeScript about our table structure
     const { error } = await supabase
-      .from('crypto_posts' as any)
+      // Use from with any without specifying a generic type
+      .from('crypto_posts')
       .insert({
         user_id: userData.user.id,
         encrypted_title: encryptedTitle,
         encrypted_content: encryptedContent,
-      } as any);
+      });
 
     if (error) {
       toast({
