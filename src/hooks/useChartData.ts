@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { coinData } from '@/utils/chart/coinData';
@@ -56,6 +57,15 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     data: any;
   } | null>(null);
 
+  // Force update when initial coin changes
+  useEffect(() => {
+    if (initialCoin.symbol !== selectedCoin.symbol) {
+      setSelectedCoin(initialCoin);
+      // Ensure we reload data
+      dataGeneratedRef.current = null;
+    }
+  }, [initialCoin]);
+
   useEffect(() => {
     // Only regenerate data when coin or range changes
     const shouldRegenerateData = !dataGeneratedRef.current || 
@@ -86,6 +96,17 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
       ...item,
       dataPoints: arr.slice(Math.max(0, index - 1), index + 1)
     }));
+    
+    // Guard against empty data
+    if (chartData.length === 0) {
+      console.warn(`No data available for ${selectedCoin.symbol}`);
+      setData([]);
+      setRsiData([]);
+      setMacdData({ macdLine: [], signalLine: [], histogram: [] });
+      setBollingerBands({ upper: [], middle: [], lower: [] });
+      setPredictionData([]);
+      return;
+    }
     
     const prices = chartData.map(item => item.price);
     const newRsiData = calculateRSI(prices);
@@ -150,7 +171,7 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     }));
     
     setAllCoins(updatedAllCoins);
-  }, [selectedRange, selectedCoin]);  // Removed other dependencies to prevent rapid updates
+  }, [selectedRange, selectedCoin, sentimentData, backtestResults]);  
   
   const handleRangeChange = (range: string) => {
     setSelectedRange(range);
@@ -162,6 +183,8 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
   
   const handleCoinChange = (coin: { symbol: string; name: string }) => {
     setSelectedCoin(coin);
+    // Clear cached data to ensure fresh load
+    dataGeneratedRef.current = null;
     toast({
       title: "Asset Changed",
       description: `Now showing data for ${coin.name}`
@@ -185,6 +208,7 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
   };
 
   const prepareChartData = (showPredictions: boolean) => {
+    if (!data.length) return [];
     if (!showPredictions || !predictionData.length) return data;
     
     const result = [...data];
@@ -232,8 +256,8 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     return result;
   };
 
-  const chartColor = coinData[selectedCoin.symbol as keyof typeof coinData]?.color || '#9b87f5';
-  const currentPrice = coinData[selectedCoin.symbol as keyof typeof coinData]?.price || 0;
+  const chartColor = coinData[selectedCoin.symbol]?.color || '#9b87f5';
+  const currentPrice = coinData[selectedCoin.symbol]?.price || 0;
 
   return {
     selectedCoin,

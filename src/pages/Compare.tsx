@@ -1,13 +1,14 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useChartData } from "@/hooks/useChartData";
 import { coinData } from "@/utils/chart/coinData";
 import PriceChart from "@/components/chart/PriceChart";
 import TechnicalIndicators from "@/components/TechnicalIndicators";
+import { useToast } from "@/hooks/use-toast";
 
-/** NEW COMPONENT: Shows prediction and correlation between big/low coins */
+/** Shows prediction and correlation between big/low coins */
 const CoinSyncPrediction = ({
   bigChart,
   lowChart,
@@ -26,6 +27,8 @@ const CoinSyncPrediction = ({
 
   // Simple correlation function
   function pearson(a: number[], b: number[]) {
+    if (a.length === 0 || b.length === 0) return 0;
+    
     const meanA = a.reduce((x,y) => x+y,0)/a.length;
     const meanB = b.reduce((x,y) => x+y,0)/b.length;
     const numerator = a.map((v,i)=> (v-meanA)*(b[i]-meanB)).reduce((x,y)=>x+y,0);
@@ -38,13 +41,17 @@ const CoinSyncPrediction = ({
 
   // Lag-based predictive relationship check
   const lag = 1; // 1 point lead/lag
-  const laggedBig = bigPrices.slice(0, n-lag);
-  const futureLow = lowPrices.slice(lag, n);
-  const leadCorr = pearson(laggedBig, futureLow);
-  const lagCorr = pearson(laggedBig, lowPrices.slice(0, n-lag)); // baseline corr
+  
+  // Only calculate if we have enough data points
+  const hasEnoughData = n > lag && bigPrices.length > lag && lowPrices.length > lag;
+  
+  const laggedBig = hasEnoughData ? bigPrices.slice(0, n-lag) : [];
+  const futureLow = hasEnoughData ? lowPrices.slice(lag, n) : [];
+  const leadCorr = hasEnoughData ? pearson(laggedBig, futureLow) : 0;
+  const lagCorr = hasEnoughData ? pearson(laggedBig, lowPrices.slice(0, n-lag)) : 0; 
 
   // Find the latest big move direction
-  const lastBigChange = bigPrices[n-1] - bigPrices[n-2] || 0;
+  const lastBigChange = hasEnoughData ? (bigPrices[n-1] - bigPrices[n-2]) || 0 : 0;
   const predictedLowChange = lastBigChange * (leadCorr > 0 ? 1 : -1);
   const lowVolume = lowChart.data[n-1]?.volume ?? 0;
   const predictedNextVolume = Math.round(lowVolume * (1 + Math.abs(predictedLowChange/100)));
@@ -59,7 +66,7 @@ const CoinSyncPrediction = ({
           <span>
             {bigCoin.name} last move: 
             <span className={lastBigChange > 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-              {lastBigChange > 0 ? "⬆ Rising" : "⬇ Falling"}
+              {lastBigChange > 0 ? " ⬆ Rising" : " ⬇ Falling"}
             </span>{" "}
             | Lead correlation with {lowCoin.name}: <span className="font-semibold text-white">{leadCorr.toFixed(2)}</span>
             <span className="mx-2">|</span>
@@ -105,7 +112,9 @@ const ALL_COINS = [...BIG_COINS, ...LOW_COINS];
 const defaultSelected = [BIG_COINS[0], LOW_COINS[0]];
 
 const Compare = () => {
+  const { toast } = useToast();
   const [selectedCoins, setSelectedCoins] = useState(defaultSelected);
+  const [chartKey, setChartKey] = useState(0); // Add key to force chart rerenders
 
   // UseChartData() for each coin
   const bigChart = useChartData(selectedCoins[0], "1D");
@@ -115,26 +124,44 @@ const Compare = () => {
   const handleSelectCoin = (group: "big" | "low", idx: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const coin = ALL_COINS.find((c) => c.symbol === e.target.value);
     if (!coin) return;
+    
     setSelectedCoins((prev) => {
       const next = [...prev];
       next[group === "big" ? 0 : 1] = coin;
       return next;
     });
+    
+    // Force chart rerender when coins change
+    setChartKey(prev => prev + 1);
+    
+    toast({
+      title: `${group === "big" ? "Big" : "Low"} coin changed`,
+      description: `Now comparing with ${coin.name}`
+    });
   };
 
   // Comparative data for chart overlay display
   const chartOverlayData = useMemo(() => {
+    if (!bigChart.data.length || !lowChart.data.length) {
+      return [];
+    }
+    
     const n = Math.min(bigChart.data.length, lowChart.data.length);
+    
+    // Safely handle empty data
+    if (n === 0) return [];
+    
     // Normalize both prices for visual comparison
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
+    
     const series = [];
     for (let i = 0; i < n; i++) {
       series.push({
         time: bigChart.data[i].time,
         [`${selectedCoins[0].symbol}`]: (bigChart.data[i].price / bigStart) * 100,
         [`${selectedCoins[1].symbol}`]: (lowChart.data[i].price / lowStart) * 100,
-      })
+      });
     }
     return series;
   }, [bigChart.data, lowChart.data, selectedCoins]);
@@ -187,23 +214,26 @@ const Compare = () => {
           </div>
           <div className="w-full h-[220px]">
             {/* Overlay the price of both coins (Normalized to 100) */}
-            <PriceChart
-              data={chartOverlayData}
-              chartColor="#9b87f5"
-              zoomLevel={1}
-              showIndicators={false}
-              showBollingerBands={false}
-              showPredictions={false}
-              // Only show non-prediction, overlay
-              compareKeys={[
-                `${selectedCoins[0].symbol}`,
-                `${selectedCoins[1].symbol}`
-              ]}
-              colors={[
-                coinData[selectedCoins[0].symbol]?.color || "#9b87f5",
-                coinData[selectedCoins[1].symbol]?.color || "#9b87f5"
-              ]}
-            />
+            {chartOverlayData.length > 0 && (
+              <PriceChart
+                key={`overlay-${chartKey}`}
+                data={chartOverlayData}
+                chartColor="#9b87f5"
+                zoomLevel={1}
+                showIndicators={false}
+                showBollingerBands={false}
+                showPredictions={false}
+                // Only show non-prediction, overlay
+                compareKeys={[
+                  `${selectedCoins[0].symbol}`,
+                  `${selectedCoins[1].symbol}`
+                ]}
+                colors={[
+                  coinData[selectedCoins[0].symbol]?.color || "#9b87f5",
+                  coinData[selectedCoins[1].symbol]?.color || "#9b87f5"
+                ]}
+              />
+            )}
           </div>
         </Card>
 
@@ -222,6 +252,7 @@ const Compare = () => {
             </div>
             <div className="w-full h-[220px]">
               <PriceChart
+                key={`big-${chartKey}`}
                 data={bigChart.prepareChartData(true)}
                 chartColor={bigChart.chartColor}
                 currentPrice={bigChart.currentPrice}
@@ -253,6 +284,7 @@ const Compare = () => {
             </div>
             <div className="w-full h-[220px]">
               <PriceChart
+                key={`low-${chartKey}`}
                 data={lowChart.prepareChartData(true)}
                 chartColor={lowChart.chartColor}
                 currentPrice={lowChart.currentPrice}
@@ -286,4 +318,3 @@ const Compare = () => {
 };
 
 export default Compare;
-
