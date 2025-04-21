@@ -11,8 +11,9 @@ const PostList = () => {
 
   const fetchPosts = async () => {
     setLoading(true);
-    // @ts-ignore - Intentionally bypassing type check for table that exists in DB but not in types
-    const { data, error } = await supabase
+    
+    // Cast the entire supabase object to any to bypass TypeScript's type checking
+    const { data, error } = await (supabase as any)
       .from('crypto_posts')
       .select('id, encrypted_title, encrypted_content, created_at')
       .order('created_at', { ascending: false });

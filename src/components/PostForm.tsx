@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,9 +34,7 @@ const PostForm = () => {
       return;
     }
 
-    // Use a different approach to bypass TypeScript's type checking
-    // @ts-ignore - Intentionally bypassing type check for table that exists in DB but not in types
-    const { error } = await supabase
+    const { error } = await (supabase as any)
       .from('crypto_posts')
       .insert({
         user_id: userData.user.id,
@@ -60,8 +57,6 @@ const PostForm = () => {
       setTitle('');
       setContent('');
       
-      // Refresh the posts list by triggering a window reload
-      // In a production app, you might use a more elegant state management approach
       window.location.reload();
     }
   };
