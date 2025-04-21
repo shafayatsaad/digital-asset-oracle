@@ -25,9 +25,8 @@ interface PriceChartProps {
     lower: number[];
   };
   showPredictions: boolean;
-  // Add the new properties for comparison mode
-  compareKeys?: string[];
-  colors?: string[];
+  compareKeys?: string[];              // <-- Added for compare mode
+  colors?: string[];                   // <-- Added for compare mode
 }
 
 const PriceChart = ({
@@ -213,3 +212,4 @@ const PriceChart = ({
 };
 
 export default PriceChart;
+

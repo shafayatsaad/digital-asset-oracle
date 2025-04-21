@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import PriceChart from "@/components/chart/PriceChart";
 import TechnicalIndicators from "@/components/TechnicalIndicators";
 import { useToast } from "@/hooks/use-toast";
 
-/** Shows prediction and correlation between big/low coins */
 const CoinSyncPrediction = ({
   bigChart,
   lowChart,
@@ -20,12 +18,10 @@ const CoinSyncPrediction = ({
   bigCoin: {symbol: string, name: string},
   lowCoin: {symbol: string, name: string}
 }) => {
-  // Find highest and lowest from both data arrays
   const bigPrices = bigChart.data.map((d) => d.price ?? 0);
   const lowPrices = lowChart.data.map((d) => d.price ?? 0);
   const n = Math.min(bigPrices.length, lowPrices.length);
 
-  // Simple correlation function
   function pearson(a: number[], b: number[]) {
     if (a.length === 0 || b.length === 0) return 0;
     
@@ -39,10 +35,7 @@ const CoinSyncPrediction = ({
     return denom ? numerator/denom : 0;
   }
 
-  // Lag-based predictive relationship check
-  const lag = 1; // 1 point lead/lag
-  
-  // Only calculate if we have enough data points
+  const lag = 1;
   const hasEnoughData = n > lag && bigPrices.length > lag && lowPrices.length > lag;
   
   const laggedBig = hasEnoughData ? bigPrices.slice(0, n-lag) : [];
@@ -50,7 +43,6 @@ const CoinSyncPrediction = ({
   const leadCorr = hasEnoughData ? pearson(laggedBig, futureLow) : 0;
   const lagCorr = hasEnoughData ? pearson(laggedBig, lowPrices.slice(0, n-lag)) : 0; 
 
-  // Find the latest big move direction
   const lastBigChange = hasEnoughData ? (bigPrices[n-1] - bigPrices[n-2]) || 0 : 0;
   const predictedLowChange = lastBigChange * (leadCorr > 0 ? 1 : -1);
   const lowVolume = lowChart.data[n-1]?.volume ?? 0;
@@ -95,7 +87,6 @@ const CoinSyncPrediction = ({
   );
 };
 
-// --- PAGE COMPONENT ---
 const BIG_COINS = [
   { symbol: "BTCUSDT", name: "Bitcoin" },
   { symbol: "ETHUSDT", name: "Ethereum" },
@@ -114,47 +105,34 @@ const defaultSelected = [BIG_COINS[0], LOW_COINS[0]];
 const Compare = () => {
   const { toast } = useToast();
   const [selectedCoins, setSelectedCoins] = useState(defaultSelected);
-  const [chartKey, setChartKey] = useState(0); // Add key to force chart rerenders
+  const [chartKey, setChartKey] = useState(0);
 
-  // UseChartData() for each coin
   const bigChart = useChartData(selectedCoins[0], "1D");
   const lowChart = useChartData(selectedCoins[1], "1D");
 
-  // Handler to swap base/alt coins
   const handleSelectCoin = (group: "big" | "low", idx: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const coin = ALL_COINS.find((c) => c.symbol === e.target.value);
     if (!coin) return;
-    
     setSelectedCoins((prev) => {
       const next = [...prev];
       next[group === "big" ? 0 : 1] = coin;
       return next;
     });
-    
-    // Force chart rerender when coins change
     setChartKey(prev => prev + 1);
-    
     toast({
       title: `${group === "big" ? "Big" : "Low"} coin changed`,
       description: `Now comparing with ${coin.name}`
     });
   };
 
-  // Comparative data for chart overlay display
   const chartOverlayData = useMemo(() => {
     if (!bigChart.data.length || !lowChart.data.length) {
       return [];
     }
-    
     const n = Math.min(bigChart.data.length, lowChart.data.length);
-    
-    // Safely handle empty data
     if (n === 0) return [];
-    
-    // Normalize both prices for visual comparison
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
-    
     const series = [];
     for (let i = 0; i < n; i++) {
       series.push({
@@ -175,7 +153,6 @@ const Compare = () => {
           Use this tool to spot advance signals in small coins by observing large coin moves!
         </p>
 
-        {/* Coin selectors */}
         <div className="flex flex-wrap gap-4 mb-6">
           <Card className="bg-[#1A1F2C] p-4 border-none">
             <span className="text-white block mb-2">Select Big Coin</span>
@@ -207,23 +184,20 @@ const Compare = () => {
           </Card>
         </div>
 
-        {/* Overlay chart of normalized prices */}
         <Card className="bg-[#232943] p-4 border-none mb-4">
           <div className="text-white text-md font-semibold mb-2">
             Price Movements (Normalized)
           </div>
           <div className="w-full h-[220px]">
-            {/* Overlay the price of both coins (Normalized to 100) */}
             {chartOverlayData.length > 0 && (
               <PriceChart
-                key={`overlay-${chartKey}`}
+                key={`overlay-${selectedCoins[0].symbol}-${selectedCoins[1].symbol}-${chartKey}`}
                 data={chartOverlayData}
                 chartColor="#9b87f5"
                 zoomLevel={1}
                 showIndicators={false}
                 showBollingerBands={false}
                 showPredictions={false}
-                // Only show non-prediction, overlay
                 compareKeys={[
                   `${selectedCoins[0].symbol}`,
                   `${selectedCoins[1].symbol}`
@@ -237,9 +211,7 @@ const Compare = () => {
           </div>
         </Card>
 
-        {/* Per-coin technicals */}
         <div className="grid md:grid-cols-2 gap-6">
-          {/* Big coin chart & technicals */}
           <Card className="bg-[#1A1F2C] border-none p-4 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-white text-lg font-medium">
@@ -271,7 +243,6 @@ const Compare = () => {
               timeFormat={bigChart.timeFormat}
             />
           </Card>
-          {/* Low coin chart & technicals */}
           <Card className="bg-[#1A1F2C] border-none p-4 space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-white text-lg font-medium">
@@ -305,7 +276,6 @@ const Compare = () => {
           </Card>
         </div>
 
-        {/* Lead/Lag Predictive Analysis */}
         <CoinSyncPrediction
           bigChart={bigChart}
           lowChart={lowChart}
