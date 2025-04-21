@@ -2,16 +2,14 @@
 import React from 'react';
 import {
   AreaChart,
-  Area,
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-  Line
+  ResponsiveContainer
 } from 'recharts';
 import { CustomTooltip } from './CustomTooltip';
 import { calculateChartDomain } from "@/utils/chart/domain";
+import PriceChartArea from './PriceChartArea';
 
 interface PriceChartProps {
   data: any[];
@@ -42,7 +40,6 @@ const PriceChart = ({
   compareKeys,
   colors
 }: PriceChartProps) => {
-  // Refactored: domain logic is now imported
   const yDomain = calculateChartDomain({
     data,
     keys: compareKeys,
@@ -94,83 +91,16 @@ const PriceChart = ({
             strokeDasharray: '5 5'
           }}
         />
-        {currentPrice && (
-          <ReferenceLine
-            y={currentPrice}
-            stroke="#8E9196"
-            strokeDasharray="3 3"
-          />
-        )}
-        {showIndicators && showBollingerBands && bollingerBands && (
-          <>
-            <Line
-              type="monotone"
-              dataKey="upper"
-              stroke="#f43f5e"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-              dot={false}
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="middle"
-              stroke="#8E9196"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-              dot={false}
-              isAnimationActive={false}
-            />
-            <Line
-              type="monotone"
-              dataKey="lower"
-              stroke="#22c55e"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-              dot={false}
-              isAnimationActive={false}
-            />
-          </>
-        )}
-        {/* Comparison mode for normalized overlays */}
-        {compareKeys && colors ? (
-          compareKeys.map((key, index) => (
-            <Area
-              key={key}
-              type="monotone"
-              dataKey={key}
-              stroke={colors[index] || chartColor}
-              fill={`url(#color-${key})`}
-              strokeWidth={2}
-              fillOpacity={0.3}
-              dot={false}
-              isAnimationActive={false}
-            />
-          ))
-        ) : (
-          // Single-coin chart
-          <Area
-            type="monotone"
-            dataKey="price"
-            stroke={chartColor}
-            fillOpacity={1}
-            fill={`url(#colorPrice-${chartColor})`}
-            strokeWidth={2}
-            isAnimationActive={false}
-          />
-        )}
-        {showPredictions && (
-          <Area
-            type="monotone"
-            dataKey="predictedPrice"
-            stroke="#9333ea"
-            strokeWidth={2}
-            fillOpacity={0.1}
-            fill="url(#colorPrediction)"
-            activeDot={{ r: 6, fill: "#9333ea" }}
-            isAnimationActive={false}
-          />
-        )}
+        <PriceChartArea
+          compareKeys={compareKeys}
+          colors={colors}
+          chartColor={chartColor}
+          showIndicators={showIndicators}
+          showBollingerBands={showBollingerBands}
+          bollingerBands={bollingerBands}
+          currentPrice={currentPrice}
+          showPredictions={showPredictions}
+        />
       </AreaChart>
     </ResponsiveContainer>
   );
