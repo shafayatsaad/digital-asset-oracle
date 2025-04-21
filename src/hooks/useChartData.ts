@@ -1,26 +1,34 @@
 
-import { useState, useEffect, useRef } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { useEffect, useRef, useState } from 'react';
 import { coinData } from '@/utils/chart/coinData';
 import { generateDataForTimeRange } from '@/utils/chart/generateData';
 import { runBacktest } from '@/utils/analysis/backtest';
 import { useTechnicalIndicators } from './useTechnicalIndicators';
 import { usePredictionWithSentiment } from './usePredictionWithSentiment';
-import { useMarketSentiment } from './useMarketSentiment';
+import { useChartHandlers } from './useChartHandlers';
 import { prepareChartDataWithPrediction } from '@/utils/chart/predictionOverlay';
+import { useMarketSentiment } from './useMarketSentiment';
 
 const allCoinsData: { [key: string]: any[] } = {};
 
 export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' }, initialRange = '15m') => {
-  const { toast } = useToast();
-  const [selectedRange, setSelectedRange] = useState(initialRange);
-  const [selectedCoin, setSelectedCoin] = useState(initialCoin);
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const {
+    selectedRange,
+    setSelectedRange,
+    selectedCoin,
+    setSelectedCoin,
+    zoomLevel,
+    setZoomLevel,
+    handleRangeChange,
+    handleCoinChange,
+    zoomIn,
+    zoomOut
+  } = useChartHandlers(initialRange, initialCoin);
+
   const [data, setData] = useState<any[]>([]);
   const [timeFormat, setTimeFormat] = useState('');
   const [allCoins, setAllCoins] = useState<{ symbol: string; name: string; data: any[]; }[]>([]);
   const [backtestResults, setBacktestResults] = useState<{ returns: number; winRate: number; maxDrawdown: number; } | null>(null);
-
   const dataGeneratedRef = useRef<{ coin: string; range: string; data: any; } | null>(null);
 
   useEffect(() => {
@@ -32,7 +40,6 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
 
   useEffect(() => {
     const shouldRegenerateData = !dataGeneratedRef.current || dataGeneratedRef.current.coin !== selectedCoin.symbol || dataGeneratedRef.current.range !== selectedRange;
-
     let newData, newTimeFormat;
     if (shouldRegenerateData) {
       const generatedData = generateDataForTimeRange(selectedRange, selectedCoin);
@@ -64,7 +71,7 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
       const prices = chartData.map(item => item.price);
       setBacktestResults(runBacktest(prices));
     }
-  }, [selectedRange, selectedCoin]);
+  }, [selectedRange, selectedCoin, setSelectedCoin]);
 
   const sentimentData = useMarketSentiment(selectedCoin.symbol);
   const { rsiData, macdData, bollingerBands } = useTechnicalIndicators(data);
@@ -83,27 +90,6 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     backtestReturns: backtestResults?.returns || 0,
     coinSymbol: selectedCoin.symbol
   });
-
-  const handleRangeChange = (range: string) => {
-    setSelectedRange(range);
-    toast({ title: "Timeframe Changed", description: `Chart now showing ${range} timeframe data` });
-  };
-
-  const handleCoinChange = (coin: { symbol: string; name: string }) => {
-    setSelectedCoin(coin);
-    dataGeneratedRef.current = null;
-    toast({ title: "Asset Changed", description: `Now showing data for ${coin.name}` });
-  };
-
-  const zoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + 0.25, 3));
-    toast({ title: "Zoom In", description: "Chart view zoomed in" });
-  };
-
-  const zoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - 0.25, 0.5));
-    toast({ title: "Zoom Out", description: "Chart view zoomed out" });
-  };
 
   // Refactored: prepare chart data (with/without prediction overlay)
   const prepareChartData = (showPredictions: boolean) => {
