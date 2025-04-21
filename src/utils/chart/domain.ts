@@ -11,8 +11,8 @@ export function calculateChartDomain({
   data: any[];
   keys?: string[];
   zoomLevel?: number;
-}) {
-  if (!data.length) return ['auto', 'auto'];
+}): [number, number] {
+  if (!data.length) return [0, 100]; // Default domain when no data is available
 
   // Comparison mode: multiple series
   if (keys && keys.length > 0) {
@@ -24,7 +24,7 @@ export function calculateChartDomain({
         }
       });
     });
-    if (allValues.length === 0) return ['auto', 'auto'];
+    if (allValues.length === 0) return [0, 100]; // Default domain when no values are found
     const min = Math.min(...allValues);
     const max = Math.max(...allValues);
     const range = max - min;
@@ -33,7 +33,9 @@ export function calculateChartDomain({
   }
 
   // Single series mode
-  const prices = data.map(item => item.price);
+  const prices = data.map(item => item.price).filter((p): p is number => p !== undefined && p !== null);
+  if (prices.length === 0) return [0, 100]; // Default domain when no prices are found
+  
   const min = Math.min(...prices);
   const max = Math.max(...prices);
   const range = max - min;
