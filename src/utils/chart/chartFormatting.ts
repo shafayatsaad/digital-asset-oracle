@@ -1,4 +1,5 @@
 
 export function formatChartPrice(value: number): string {
-  return value?.toLocaleString();
+  if (value === undefined || value === null) return '';
+  return value.toLocaleString();
 }

@@ -40,17 +40,21 @@ const PriceChart = ({
   compareKeys,
   colors
 }: PriceChartProps) => {
+  // Ensure we have data to display
+  const chartData = data.length > 0 ? data : [{ time: '00:00', price: 0 }];
+  
+  // Calculate domain with fallback to default
   const yDomain = calculateChartDomain({
-    data,
+    data: chartData,
     keys: compareKeys,
     zoomLevel
   });
 
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data}>
+      <AreaChart data={chartData}>
         <ChartGradients chartColor={chartColor} compareKeys={compareKeys} colors={colors} />
-        <ChartAxes data={data} compareKeys={compareKeys} yDomain={yDomain} />
+        <ChartAxes data={chartData} compareKeys={compareKeys} yDomain={yDomain} />
         <Tooltip
           content={<CustomTooltip />}
           cursor={{

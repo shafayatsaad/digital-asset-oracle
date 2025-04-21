@@ -20,7 +20,7 @@ export function calculateChartDomain({
     data.forEach(item => {
       keys.forEach(key => {
         if (item[key] !== undefined && item[key] !== null) {
-          allValues.push(item[key]);
+          allValues.push(Number(item[key]));
         }
       });
     });

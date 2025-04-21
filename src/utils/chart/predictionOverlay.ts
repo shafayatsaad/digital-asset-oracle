@@ -7,18 +7,20 @@ export function prepareChartDataWithPrediction(
   predictionData: number[],
   selectedRange: string
 ) {
-  if (!data.length) return [];
+  if (!data.length) return [{ time: '00:00', price: 0 }];
   if (!predictionData.length) return data;
 
   const result = [...data];
   const lastDataPoint = data[data.length - 1];
   const lastPrice = lastDataPoint.price ?? 0;
-  const lastTime = lastDataPoint.time;
+  const lastTime = lastDataPoint.time || '00:00';
   const lastDate = new Date();
-  if (lastTime.includes(':')) {
+  
+  if (lastTime && lastTime.includes(':')) {
     const [hours, minutes] = lastTime.split(':').map(Number);
-    lastDate.setHours(hours, minutes, 0, 0);
+    lastDate.setHours(hours || 0, minutes || 0, 0, 0);
   }
+  
   for (let i = 0; i < predictionData.length; i++) {
     const nextDate = new Date(lastDate);
     if (selectedRange === '15m') {

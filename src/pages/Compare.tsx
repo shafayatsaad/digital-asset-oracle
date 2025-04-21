@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,21 +35,33 @@ const Compare = () => {
 
   const chartOverlayData = useMemo(() => {
     if (!bigChart.data.length || !lowChart.data.length) {
-      return [];
+      return [{ time: '00:00', [selectedCoins[0].symbol]: 100, [selectedCoins[1].symbol]: 100 }];
     }
+    
     const n = Math.min(bigChart.data.length, lowChart.data.length);
-    if (n === 0) return [];
+    if (n === 0) return [{ time: '00:00', [selectedCoins[0].symbol]: 100, [selectedCoins[1].symbol]: 100 }];
+    
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
     const series = [];
+    
     for (let i = 0; i < n; i++) {
-      series.push({
-        time: bigChart.data[i].time,
-        [`${selectedCoins[0].symbol}`]: (bigChart.data[i].price / bigStart) * 100,
-        [`${selectedCoins[1].symbol}`]: (lowChart.data[i].price / lowStart) * 100,
-      });
+      // Make sure we have time and price data
+      if (bigChart.data[i] && lowChart.data[i]) {
+        series.push({
+          time: bigChart.data[i].time || `${i}:00`,
+          [selectedCoins[0].symbol]: (bigChart.data[i].price / bigStart) * 100,
+          [selectedCoins[1].symbol]: (lowChart.data[i].price / lowStart) * 100,
+        });
+      }
     }
-    return series;
+    
+    // If no valid data points, return a placeholder
+    return series.length > 0 ? series : [{ 
+      time: '00:00', 
+      [selectedCoins[0].symbol]: 100, 
+      [selectedCoins[1].symbol]: 100 
+    }];
   }, [bigChart.data, lowChart.data, selectedCoins]);
 
   return (
