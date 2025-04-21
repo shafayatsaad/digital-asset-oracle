@@ -18,6 +18,13 @@ const Compare = () => {
   const bigChart = useChartData(selectedCoins[0], "1D");
   const lowChart = useChartData(selectedCoins[1], "1D");
 
+  useEffect(() => {
+    // Ensure data is loaded
+    if (!bigChart.data?.length || !lowChart.data?.length) {
+      console.log('Loading chart data...');
+    }
+  }, [bigChart.data, lowChart.data]);
+
   const handleSelectCoin = (group: "big" | "low", idx: number) => (e: React.ChangeEvent<HTMLSelectElement>) => {
     const coin = ALL_COINS.find((c) => c.symbol === e.target.value);
     if (!coin) return;
@@ -34,12 +41,20 @@ const Compare = () => {
   };
 
   const chartOverlayData = useMemo(() => {
-    if (!bigChart.data.length || !lowChart.data.length) {
-      return [{ time: '00:00', [selectedCoins[0].symbol]: 100, [selectedCoins[1].symbol]: 100 }];
+    if (!bigChart.data?.length || !lowChart.data?.length) {
+      return [{ 
+        time: '00:00', 
+        [selectedCoins[0].symbol]: 100, 
+        [selectedCoins[1].symbol]: 100 
+      }];
     }
     
     const n = Math.min(bigChart.data.length, lowChart.data.length);
-    if (n === 0) return [{ time: '00:00', [selectedCoins[0].symbol]: 100, [selectedCoins[1].symbol]: 100 }];
+    if (n === 0) return [{ 
+      time: '00:00', 
+      [selectedCoins[0].symbol]: 100, 
+      [selectedCoins[1].symbol]: 100 
+    }];
     
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
@@ -139,7 +154,7 @@ const Compare = () => {
                 <span className="ml-2 text-[#8E9196] text-sm">({selectedCoins[0].symbol.replace("USDT", "")})</span>
               </span>
               <span className="text-[#8E9196]">
-                Price: <span style={{ color: bigChart.chartColor }}>${bigChart.currentPrice.toLocaleString()}</span>
+                Price: <span style={{ color: bigChart.chartColor }}>${bigChart.currentPrice?.toLocaleString() || '0'}</span>
               </span>
             </div>
             <div className="w-full h-[220px]">
@@ -170,7 +185,7 @@ const Compare = () => {
                 <span className="ml-2 text-[#8E9196] text-sm">({selectedCoins[1].symbol.replace("USDT", "")})</span>
               </span>
               <span className="text-[#8E9196]">
-                Price: <span style={{ color: lowChart.chartColor }}>${lowChart.currentPrice.toLocaleString()}</span>
+                Price: <span style={{ color: lowChart.chartColor }}>${lowChart.currentPrice?.toLocaleString() || '0'}</span>
               </span>
             </div>
             <div className="w-full h-[220px]">

@@ -41,7 +41,7 @@ const PriceChart = ({
   colors
 }: PriceChartProps) => {
   // Ensure we have data to display
-  const chartData = data.length > 0 ? data : [{ time: '00:00', price: 0 }];
+  const chartData = data?.length > 0 ? data : [{ time: '00:00', price: 0 }];
   
   // Calculate domain with fallback to default
   const yDomain = calculateChartDomain({

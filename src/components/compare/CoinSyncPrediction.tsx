@@ -10,7 +10,7 @@ type CoinSyncPredictionProps = {
 };
 
 function pearson(a: number[], b: number[]) {
-  if (a.length === 0 || b.length === 0) return 0;
+  if (!a || !b || a.length === 0 || b.length === 0) return 0;
   const meanA = a.reduce((x, y) => x + y, 0) / a.length;
   const meanB = b.reduce((x, y) => x + y, 0) / b.length;
   const numerator = a.map((v, i) => (v - meanA) * (b[i] - meanB)).reduce((x, y) => x + y, 0);
@@ -27,8 +27,14 @@ const CoinSyncPrediction = ({
   bigCoin,
   lowCoin,
 }: CoinSyncPredictionProps) => {
-  const bigPrices = bigChart.data.map((d) => d.price ?? 0);
-  const lowPrices = lowChart.data.map((d) => d.price ?? 0);
+  // Ensure we have valid data
+  const hasBigData = bigChart?.data && Array.isArray(bigChart.data) && bigChart.data.length > 0;
+  const hasLowData = lowChart?.data && Array.isArray(lowChart.data) && lowChart.data.length > 0;
+  
+  // Extract price data with safeguards
+  const bigPrices = hasBigData ? bigChart.data.map((d) => d?.price ?? 0) : [0];
+  const lowPrices = hasLowData ? lowChart.data.map((d) => d?.price ?? 0) : [0];
+  
   const n = Math.min(bigPrices.length, lowPrices.length);
   const lag = 1;
   const hasEnoughData = n > lag && bigPrices.length > lag && lowPrices.length > lag;
@@ -38,7 +44,7 @@ const CoinSyncPrediction = ({
   const leadCorr = hasEnoughData ? pearson(laggedBig, futureLow) : 0;
   const lastBigChange = hasEnoughData ? (bigPrices[n - 1] - bigPrices[n - 2]) || 0 : 0;
   const predictedLowChange = lastBigChange * (leadCorr > 0 ? 1 : -1);
-  const lowVolume = lowChart.data[n - 1]?.volume ?? 0;
+  const lowVolume = hasLowData ? lowChart.data[n - 1]?.volume ?? 0 : 0;
   const predictedNextVolume = Math.round(lowVolume * (1 + Math.abs(predictedLowChange / 100)));
 
   return (
@@ -81,4 +87,3 @@ const CoinSyncPrediction = ({
 };
 
 export default CoinSyncPrediction;
-
