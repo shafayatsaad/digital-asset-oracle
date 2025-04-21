@@ -1,11 +1,14 @@
+
 import React from 'react';
 import CryptoChart from '@/components/CryptoChart';
 import { Card } from '@/components/ui/card';
 import PostForm from '@/components/PostForm';
 import PostList from '@/components/PostList';
 import { MonitorSmartphone, BarChart, LineChart, TrendingUp, TrendingDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-[#131722] p-4 overflow-auto">
       <header className="max-w-[1400px] mx-auto mb-6">
@@ -57,6 +60,15 @@ const Index = () => {
               </div>
             </div>
           </Card>
+        </div>
+        {/* Add comparison page button */}
+        <div className="flex justify-end mt-8">
+          <button
+            className="bg-[#8B5CF6] hover:bg-[#9b87f5] transition-colors text-white px-6 py-2 rounded font-bold shadow-lg text-lg hover-scale animate-fade-in"
+            onClick={() => navigate("/compare")}
+          >
+            Compare Coins
+          </button>
         </div>
       </header>
       <div className="max-w-[1400px] mx-auto space-y-4">
