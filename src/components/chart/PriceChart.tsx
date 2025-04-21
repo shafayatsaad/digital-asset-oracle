@@ -42,13 +42,27 @@ const PriceChart = ({
 }: PriceChartProps) => {
   // Ensure we have data to display
   const chartData = data?.length > 0 ? data : [{ time: '00:00', price: 0 }];
-  
-  // Calculate domain with fallback to default
-  const yDomain = calculateChartDomain({
-    data: chartData,
-    keys: compareKeys,
-    zoomLevel
-  });
+
+  // Calculate domain and ensure it always returns [number, number]
+  let yDomain: [number, number] = [0, 100];
+  try {
+    const domain = calculateChartDomain({
+      data: chartData,
+      keys: compareKeys,
+      zoomLevel
+    });
+    if (
+      Array.isArray(domain) &&
+      domain.length === 2 &&
+      typeof domain[0] === "number" &&
+      typeof domain[1] === "number"
+    ) {
+      yDomain = domain as [number, number];
+    }
+  } catch {
+    // fallback to default
+    yDomain = [0, 100];
+  }
 
   return (
     <ResponsiveContainer width="100%" height="100%">
@@ -79,3 +93,4 @@ const PriceChart = ({
 };
 
 export default PriceChart;
+

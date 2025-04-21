@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { useChartData } from "@/hooks/useChartData";
 import { coinData } from "@/utils/chart/coinData";
 import PriceChart from "@/components/chart/PriceChart";
-import TechnicalIndicators from "@/components/TechnicalIndicators";
 import { useToast } from "@/hooks/use-toast";
 import { BIG_COINS, LOW_COINS, ALL_COINS, defaultSelected } from "@/config/coinCompareConfig";
 import CoinSyncPrediction from "@/components/compare/CoinSyncPrediction";
+import CompareCoinChartCard from "@/components/compare/CompareCoinChartCard";
+import CompareCoinSelector from "@/components/compare/CompareCoinSelector";
 
 const Compare = () => {
   const { toast } = useToast();
@@ -42,26 +43,25 @@ const Compare = () => {
 
   const chartOverlayData = useMemo(() => {
     if (!bigChart.data?.length || !lowChart.data?.length) {
-      return [{ 
-        time: '00:00', 
-        [selectedCoins[0].symbol]: 100, 
-        [selectedCoins[1].symbol]: 100 
+      return [{
+        time: '00:00',
+        [selectedCoins[0].symbol]: 100,
+        [selectedCoins[1].symbol]: 100
       }];
     }
-    
+
     const n = Math.min(bigChart.data.length, lowChart.data.length);
-    if (n === 0) return [{ 
-      time: '00:00', 
-      [selectedCoins[0].symbol]: 100, 
-      [selectedCoins[1].symbol]: 100 
+    if (n === 0) return [{
+      time: '00:00',
+      [selectedCoins[0].symbol]: 100,
+      [selectedCoins[1].symbol]: 100
     }];
-    
+
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
     const series = [];
-    
+
     for (let i = 0; i < n; i++) {
-      // Make sure we have time and price data
       if (bigChart.data[i] && lowChart.data[i]) {
         series.push({
           time: bigChart.data[i].time || `${i}:00`,
@@ -70,12 +70,11 @@ const Compare = () => {
         });
       }
     }
-    
-    // If no valid data points, return a placeholder
-    return series.length > 0 ? series : [{ 
-      time: '00:00', 
-      [selectedCoins[0].symbol]: 100, 
-      [selectedCoins[1].symbol]: 100 
+
+    return series.length > 0 ? series : [{
+      time: '00:00',
+      [selectedCoins[0].symbol]: 100,
+      [selectedCoins[1].symbol]: 100
     }];
   }, [bigChart.data, lowChart.data, selectedCoins]);
 
@@ -84,40 +83,16 @@ const Compare = () => {
       <div className="max-w-[1200px] mx-auto space-y-6">
         <h1 className="text-white text-2xl font-bold mb-2">Big vs Low Cap Crypto: Predictive Comparison</h1>
         <p className="text-[#8E9196] mb-3">
-          Compare how big cap coins (like Bitcoin) lead or lag the price/volume of low cap coins. 
+          Compare how big cap coins (like Bitcoin) lead or lag the price/volume of low cap coins.
           Use this tool to spot advance signals in small coins by observing large coin moves!
         </p>
 
-        <div className="flex flex-wrap gap-4 mb-6">
-          <Card className="bg-[#1A1F2C] p-4 border-none">
-            <span className="text-white block mb-2">Select Big Coin</span>
-            <select
-              value={selectedCoins[0].symbol}
-              onChange={handleSelectCoin("big", 0)}
-              className="block bg-[#2A2F3C] text-white p-2 rounded"
-            >
-              {BIG_COINS.map((coin) => (
-                <option key={coin.symbol} value={coin.symbol}>
-                  {coin.name}
-                </option>
-              ))}
-            </select>
-          </Card>
-          <Card className="bg-[#1A1F2C] p-4 border-none">
-            <span className="text-white block mb-2">Select Low Coin</span>
-            <select
-              value={selectedCoins[1].symbol}
-              onChange={handleSelectCoin("low", 1)}
-              className="block bg-[#2A2F3C] text-white p-2 rounded"
-            >
-              {LOW_COINS.map((coin) => (
-                <option key={coin.symbol} value={coin.symbol}>
-                  {coin.name}
-                </option>
-              ))}
-            </select>
-          </Card>
-        </div>
+        <CompareCoinSelector
+          selectedBig={selectedCoins[0]}
+          selectedLow={selectedCoins[1]}
+          onSelectBig={handleSelectCoin("big", 0)}
+          onSelectLow={handleSelectCoin("low", 1)}
+        />
 
         <Card className="bg-[#232943] p-4 border-none mb-4">
           <div className="text-white text-md font-semibold mb-2">
@@ -147,68 +122,38 @@ const Compare = () => {
         </Card>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="bg-[#1A1F2C] border-none p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-lg font-medium">
-                {selectedCoins[0].name}
-                <span className="ml-2 text-[#8E9196] text-sm">({selectedCoins[0].symbol.replace("USDT", "")})</span>
-              </span>
-              <span className="text-[#8E9196]">
-                Price: <span style={{ color: bigChart.chartColor }}>${bigChart.currentPrice?.toLocaleString() || '0'}</span>
-              </span>
-            </div>
-            <div className="w-full h-[220px]">
-              <PriceChart
-                key={`big-${chartKey}`}
-                data={bigChart.prepareChartData(true)}
-                chartColor={bigChart.chartColor}
-                currentPrice={bigChart.currentPrice}
-                zoomLevel={1}
-                showIndicators={true}
-                showBollingerBands={true}
-                bollingerBands={bigChart.bollingerBands}
-                showPredictions={false}
-              />
-            </div>
-            <TechnicalIndicators
-              data={bigChart.data}
-              rsiData={bigChart.rsiData}
-              macdData={bigChart.macdData}
-              bollingerBands={bigChart.bollingerBands}
-              timeFormat={bigChart.timeFormat}
-            />
-          </Card>
-          <Card className="bg-[#1A1F2C] border-none p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-lg font-medium">
-                {selectedCoins[1].name}
-                <span className="ml-2 text-[#8E9196] text-sm">({selectedCoins[1].symbol.replace("USDT", "")})</span>
-              </span>
-              <span className="text-[#8E9196]">
-                Price: <span style={{ color: lowChart.chartColor }}>${lowChart.currentPrice?.toLocaleString() || '0'}</span>
-              </span>
-            </div>
-            <div className="w-full h-[220px]">
-              <PriceChart
-                key={`low-${chartKey}`}
-                data={lowChart.prepareChartData(true)}
-                chartColor={lowChart.chartColor}
-                currentPrice={lowChart.currentPrice}
-                zoomLevel={1}
-                showIndicators={true}
-                showBollingerBands={true}
-                bollingerBands={lowChart.bollingerBands}
-                showPredictions={true}
-              />
-            </div>
-            <TechnicalIndicators
-              data={lowChart.data}
-              rsiData={lowChart.rsiData}
-              macdData={lowChart.macdData}
-              bollingerBands={lowChart.bollingerBands}
-              timeFormat={lowChart.timeFormat}
-            />
-          </Card>
+          <CompareCoinChartCard
+            name={selectedCoins[0].name}
+            symbol={selectedCoins[0].symbol}
+            chartColor={bigChart.chartColor}
+            currentPrice={bigChart.currentPrice}
+            data={bigChart.data}
+            chartData={bigChart.prepareChartData(true)}
+            rsiData={bigChart.rsiData}
+            macdData={bigChart.macdData}
+            bollingerBands={bigChart.bollingerBands}
+            timeFormat={bigChart.timeFormat}
+            chartKey={chartKey}
+            showIndicators={true}
+            showBollingerBands={true}
+            showPredictions={false}
+          />
+          <CompareCoinChartCard
+            name={selectedCoins[1].name}
+            symbol={selectedCoins[1].symbol}
+            chartColor={lowChart.chartColor}
+            currentPrice={lowChart.currentPrice}
+            data={lowChart.data}
+            chartData={lowChart.prepareChartData(true)}
+            rsiData={lowChart.rsiData}
+            macdData={lowChart.macdData}
+            bollingerBands={lowChart.bollingerBands}
+            timeFormat={lowChart.timeFormat}
+            chartKey={chartKey}
+            showIndicators={true}
+            showBollingerBands={true}
+            showPredictions={true}
+          />
         </div>
 
         <CoinSyncPrediction
@@ -223,3 +168,4 @@ const Compare = () => {
 };
 
 export default Compare;
+
