@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { encryptData } from '@/lib/encryption';
+import type { Post } from '@/types/database';
 
 const PostForm = () => {
   const [title, setTitle] = useState('');
@@ -25,9 +26,7 @@ const PostForm = () => {
     const encryptedTitle = encryptData(title);
     const encryptedContent = encryptData(content);
 
-    const user = supabase.auth.getUser();
-
-    const { data: userData } = await user;
+    const { data: userData } = await supabase.auth.getUser();
     if (!userData?.user) {
       toast({
         title: "Authentication required",
@@ -37,11 +36,14 @@ const PostForm = () => {
       return;
     }
 
-    const { error } = await supabase.from('crypto_posts').insert({
-      user_id: userData.user.id,
-      encrypted_title: encryptedTitle,
-      encrypted_content: encryptedContent,
-    });
+    // Use type assertion to tell TypeScript about our table structure
+    const { error } = await supabase
+      .from('crypto_posts' as any)
+      .insert({
+        user_id: userData.user.id,
+        encrypted_title: encryptedTitle,
+        encrypted_content: encryptedContent,
+      } as any);
 
     if (error) {
       toast({
@@ -57,6 +59,10 @@ const PostForm = () => {
       });
       setTitle('');
       setContent('');
+      
+      // Refresh the posts list by triggering a window reload
+      // In a production app, you might use a more elegant state management approach
+      window.location.reload();
     }
   };
 

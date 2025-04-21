@@ -3,13 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { decryptData } from '@/lib/encryption';
 import { Card } from '@/components/ui/card';
-
-interface Post {
-  id: string;
-  encrypted_title: string;
-  encrypted_content: string;
-  created_at: string;
-}
+import type { Post } from '@/types/database';
 
 const PostList = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -18,7 +12,7 @@ const PostList = () => {
   const fetchPosts = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from('crypto_posts')
+      .from('crypto_posts' as any)
       .select('id, encrypted_title, encrypted_content, created_at')
       .order('created_at', { ascending: false });
 
