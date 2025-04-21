@@ -7,13 +7,10 @@ import { runBacktest } from '@/utils/analysis/backtest';
 import { useTechnicalIndicators } from './useTechnicalIndicators';
 import { usePredictionWithSentiment } from './usePredictionWithSentiment';
 import { useMarketSentiment } from './useMarketSentiment';
+import { prepareChartDataWithPrediction } from '@/utils/chart/predictionOverlay';
 
 const allCoinsData: { [key: string]: any[] } = {};
 
-/**
- * Central chart data hook, now refactored to use dedicated
- * indicator, sentiment, and prediction hooks.
- */
 export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' }, initialRange = '15m') => {
   const { toast } = useToast();
   const [selectedRange, setSelectedRange] = useState(initialRange);
@@ -26,7 +23,6 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
 
   const dataGeneratedRef = useRef<{ coin: string; range: string; data: any; } | null>(null);
 
-  // (1) Regenerate coin data on change
   useEffect(() => {
     if (initialCoin.symbol !== selectedCoin.symbol) {
       setSelectedCoin(initialCoin);
@@ -54,7 +50,6 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     setData(chartData);
     setTimeFormat(newTimeFormat);
 
-    // Save to cache
     allCoinsData[selectedCoin.symbol] = chartData;
     const updatedAllCoins = Object.keys(allCoinsData).map(symbol => ({
       symbol,
@@ -65,20 +60,15 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     }));
     setAllCoins(updatedAllCoins);
 
-    // backtest for stats/pred
     if (shouldRegenerateData) {
       const prices = chartData.map(item => item.price);
       setBacktestResults(runBacktest(prices));
     }
   }, [selectedRange, selectedCoin]);
 
-  // Use sentiment for UI and prediction everywhere consistently
   const sentimentData = useMarketSentiment(selectedCoin.symbol);
-
-  // Technical indicators (refactored out)
   const { rsiData, macdData, bollingerBands } = useTechnicalIndicators(data);
 
-  // Prepare prediction input for all time ranges and coins
   const prices = data.map(d => d.price ?? null).filter((n): n is number => n !== null);
   const rsiCurrent = rsiData.length ? rsiData[rsiData.length - 1] : 50;
   const macd = {
@@ -115,43 +105,9 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     toast({ title: "Zoom Out", description: "Chart view zoomed out" });
   };
 
-  // Prepare chart data with or without prediction overlay
+  // Refactored: prepare chart data (with/without prediction overlay)
   const prepareChartData = (showPredictions: boolean) => {
-    if (!data.length) return [];
-    if (!showPredictions || !predictionData.length) return data;
-
-    const result = [...data];
-    const lastDataPoint = data[data.length - 1];
-    const lastPrice = lastDataPoint.price ?? prices.at(-1) ?? 0;
-    const lastTime = lastDataPoint.time;
-    const lastDate = new Date();
-    if (lastTime.includes(':')) {
-      const [hours, minutes] = lastTime.split(':').map(Number);
-      lastDate.setHours(hours, minutes, 0, 0);
-    }
-    for (let i = 0; i < predictionData.length; i++) {
-      const nextDate = new Date(lastDate);
-      if (selectedRange === '15m') {
-        nextDate.setMinutes(nextDate.getMinutes() + (i + 1) * 15);
-      } else if (selectedRange === '1H') {
-        nextDate.setHours(nextDate.getHours() + (i + 1));
-      } else if (selectedRange === '4H') {
-        nextDate.setHours(nextDate.getHours() + (i + 1) * 4);
-      } else if (selectedRange === '1D') {
-        nextDate.setDate(nextDate.getDate() + (i + 1));
-      } else if (selectedRange === '1W') {
-        nextDate.setDate(nextDate.getDate() + (i + 1) * 7);
-      }
-      const timeStr = nextDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-      result.push({
-        time: timeStr,
-        price: null,
-        predictedPrice: predictionData[i],
-        isPrediction: true,
-        dataPoints: [{ price: lastPrice }, { price: predictionData[i] }]
-      });
-    }
-    return result;
+    return prepareChartDataWithPrediction(data, showPredictions ? predictionData : [], selectedRange);
   };
 
   const chartColor = coinData[selectedCoin.symbol]?.color || '#9b87f5';
@@ -179,5 +135,3 @@ export const useChartData = (initialCoin = { symbol: 'BTCUSDT', name: 'Bitcoin' 
     prepareChartData
   };
 };
-
-// src/hooks/useChartData.ts is now refactored for better modularity!
