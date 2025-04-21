@@ -33,14 +33,15 @@ const PriceChartArea = ({
   showPredictions
 }: PriceChartAreaProps) => (
   <>
-    {currentPrice && (
+    {currentPrice && currentPrice > 0 && (
       <ReferenceLine
         y={currentPrice}
         stroke="#8E9196"
         strokeDasharray="3 3"
       />
     )}
-    {showIndicators && showBollingerBands && bollingerBands && (
+    {showIndicators && showBollingerBands && bollingerBands && 
+      bollingerBands.upper && bollingerBands.middle && bollingerBands.lower && (
       <>
         <Line
           type="monotone"
@@ -72,7 +73,7 @@ const PriceChartArea = ({
       </>
     )}
     {/* Comparison mode for overlays */}
-    {compareKeys && colors ? (
+    {compareKeys && compareKeys.length > 0 && colors && colors.length > 0 ? (
       compareKeys.map((key, index) => (
         <Area
           key={key}

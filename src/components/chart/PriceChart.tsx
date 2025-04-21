@@ -40,8 +40,8 @@ const PriceChart = ({
   compareKeys,
   colors
 }: PriceChartProps) => {
-  // Ensure we have data to display
-  const chartData = data?.length > 0 ? data : [{ time: '00:00', price: 0 }];
+  // Ensure we have valid data to display
+  const chartData = data && data.length > 0 ? data : [{ time: '00:00', price: 0 }];
 
   // Calculate domain and ensure it always returns [number, number]
   let yDomain: [number, number] = [0, 100];
@@ -51,16 +51,21 @@ const PriceChart = ({
       keys: compareKeys,
       zoomLevel
     });
+    
+    // Ensure domain is valid
     if (
       Array.isArray(domain) &&
       domain.length === 2 &&
       typeof domain[0] === "number" &&
-      typeof domain[1] === "number"
+      typeof domain[1] === "number" &&
+      !isNaN(domain[0]) &&
+      !isNaN(domain[1])
     ) {
       yDomain = domain as [number, number];
     }
-  } catch {
-    // fallback to default
+  } catch (error) {
+    console.error("Error calculating chart domain:", error);
+    // Fallback to default domain
     yDomain = [0, 100];
   }
 
@@ -93,4 +98,3 @@ const PriceChart = ({
 };
 
 export default PriceChart;
-

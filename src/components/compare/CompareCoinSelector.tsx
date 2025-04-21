@@ -22,7 +22,7 @@ const CompareCoinSelector = ({
       <select
         value={selectedBig.symbol}
         onChange={onSelectBig}
-        className="block bg-[#2A2F3C] text-white p-2 rounded"
+        className="block bg-[#2A2F3C] text-white p-2 rounded w-full"
       >
         {BIG_COINS.map((coin) => (
           <option key={coin.symbol} value={coin.symbol}>
@@ -36,7 +36,7 @@ const CompareCoinSelector = ({
       <select
         value={selectedLow.symbol}
         onChange={onSelectLow}
-        className="block bg-[#2A2F3C] text-white p-2 rounded"
+        className="block bg-[#2A2F3C] text-white p-2 rounded w-full"
       >
         {LOW_COINS.map((coin) => (
           <option key={coin.symbol} value={coin.symbol}>

@@ -42,6 +42,7 @@ const Compare = () => {
   };
 
   const chartOverlayData = useMemo(() => {
+    // Ensure we have data before attempting to process
     if (!bigChart.data?.length || !lowChart.data?.length) {
       return [{
         time: '00:00',
@@ -57,16 +58,21 @@ const Compare = () => {
       [selectedCoins[1].symbol]: 100
     }];
 
+    // Get first valid price points to normalize against
     const bigStart = bigChart.data[0]?.price || 1;
     const lowStart = lowChart.data[0]?.price || 1;
     const series = [];
 
+    // Create normalized data series
     for (let i = 0; i < n; i++) {
       if (bigChart.data[i] && lowChart.data[i]) {
+        const bigPrice = typeof bigChart.data[i].price === 'number' ? bigChart.data[i].price : bigStart;
+        const lowPrice = typeof lowChart.data[i].price === 'number' ? lowChart.data[i].price : lowStart;
+        
         series.push({
           time: bigChart.data[i].time || `${i}:00`,
-          [selectedCoins[0].symbol]: (bigChart.data[i].price / bigStart) * 100,
-          [selectedCoins[1].symbol]: (lowChart.data[i].price / lowStart) * 100,
+          [selectedCoins[0].symbol]: (bigPrice / bigStart) * 100,
+          [selectedCoins[1].symbol]: (lowPrice / lowStart) * 100,
         });
       }
     }
@@ -168,4 +174,3 @@ const Compare = () => {
 };
 
 export default Compare;
-
